@@ -12,10 +12,10 @@ def load_mnist(dataset_size_train: int = 60000, dataset_size_test: int = 10000, 
     img_rows, img_cols = 28, 28
 
     file_path = '{}/{}'.format(os.path.dirname(__file__), '/mnist')
-    train_dataset = datasets.FashionMNIST(file_path, train=True, download=True,
-                                          transform=transforms.Compose([transforms.ToTensor(), ]))
-    test_dataset = datasets.FashionMNIST(file_path, train=False, download=True,
-                                          transform=transforms.Compose([transforms.ToTensor(), ]))
+    train_dataset = datasets.MNIST(file_path, train=True, download=True,
+                                   transform=transforms.Compose([transforms.ToTensor(), ]))
+    test_dataset = datasets.MNIST(file_path, train=False, download=True,
+                                  transform=transforms.Compose([transforms.ToTensor(), ]))
 
     x_train = train_dataset.data / 255
     y_train = to_categorical(train_dataset.targets, 10)
