@@ -1,1 +1,5 @@
 __pycache__/ 
+/cifar10/cifar-10-batches-py/
+/cifar10/cifar-10-python.tar.gz
+/fashion_mnist/FashionMNIST/
+/fashion_mnist/FashionMNIST/raw/
