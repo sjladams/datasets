@@ -5,33 +5,36 @@ import os
 import pickle
 
 
-def points_to_paths(x, path_length: int, path_window_step: float, random_path_window: bool, wiener_window: bool = False,
-                    **kwargs):
+def points_to_paths(x, path_length: int, path_window_step: float, sampled_window: bool = False,
+                    wiener_window: bool = False, fixed_window: bool = True, **kwargs):
     """
     wiener process: w_k = w_k-1 + dw, dw \ sim N(0, 1)
     :param x:
     :param path_length:
     :param path_window_step:
-    :param random_path_window:
+    :param sampled_window:
     :param wiener_window:
+    :param fixed_window:
     :param kwargs:
     :return:
     """
     batch_size = x.shape[:-1]
     features = x.shape[-1]
-    if wiener_window:
+    if sampled_window:
+        p = torch.ones(batch_size.numel()) * (1/batch_size.numel())
+        idxs = p.multinomial(num_samples=batch_size.numel() * path_length, replacement=True)
+        x_paths = x.reshape(batch_size.numel(), features)[idxs].reshape(batch_size + (path_length, features))
+    elif wiener_window:
         triangle = torch.ones((path_length, path_length)).tril()
         dw = torch.randn(batch_size + (path_length,) + (features,))
         dw[..., 0, :] = 0.
         w = torch.einsum('lp,...pf->...lf', triangle, dw)
         x_paths = x[..., None, :].repeat(len(batch_size) * (1,) + (path_length, ) + (1,)) + w
-    elif random_path_window:
-        p = torch.ones(batch_size.numel()) * (1/batch_size.numel())
-        idxs = p.multinomial(num_samples=batch_size.numel() * path_length, replacement=True)
-        x_paths = x.reshape(batch_size.numel(), features)[idxs].reshape(batch_size + (path_length, features))
-    else:
+    elif fixed_window:
         window = torch.arange(-path_length // 2 + 1, path_length // 2 + 1) * path_window_step
         x_paths = torch.hstack(path_length * (x[..., None, :],)) + torch.hstack(features * (window[..., None], ))
+    else:
+        raise NotImplementedError
     return x_paths
 
 
@@ -63,33 +66,17 @@ def to_categorical(y, num_classes):
     return torch.eye(num_classes)[y]
 
 
-def dataset_points_to_paths(x: torch.Tensor, y: torch.Tensor, path_length: int, random_path_window: bool,
-                            generate_ood: bool=False, **kwargs) -> \
+def dataset_points_to_paths(x: torch.Tensor, y: torch.Tensor, path_length: int, sampled_window: bool, **kwargs) -> \
         (torch.tensor, torch.tensor):
     """
     :param x: Size(batch_size, in_features)
     :param y: Size(batch_size, out_features)
+    :param path_length
+    :param sampled_window
     """
-    batch_size = x.shape[:-1]
-    in_features = x.shape[-1]
-    out_features = y.shape[-1]
-
-    if random_path_window:
-        p = torch.ones(batch_size.numel()) * (1 / batch_size.numel())
-        idxs = p.multinomial(num_samples=batch_size.numel() * path_length, replacement=True)
-        x_paths = x.reshape(batch_size.numel(), in_features)[idxs].reshape(batch_size + (path_length, in_features))
-        y_paths = y.reshape(batch_size.numel(), out_features)[idxs].reshape(batch_size + (path_length, out_features))
-        return x_paths, y_paths
-    else:
-        if generate_ood:
-            x_paths = points_to_paths(x, path_length=path_length, random_path_window=random_path_window,
-                                                   **kwargs)
-            y_paths = torch.empty(batch_size + (path_length, out_features)).fill_(float('nan'))
-            return x_paths, y_paths
-        else:
-            x_paths = x.unfold(0, path_length, 1)
-            # to ensure that paths respect path_window_step, generate x_paths in load_"dataset" using path_winsow_step
-            raise NotImplementedError
+    x_paths = points_to_paths(x, path_length=path_length, sampled_window=sampled_window, **kwargs)
+    y_paths = torch.empty(x_paths.shape[:-1] + (y.shape[-1],)).fill_(torch.nan)
+    return x_paths, y_paths
 
 
 def scale_data(scalar, data: np.array, scale: bool = True) -> torch.tensor:
@@ -170,12 +157,9 @@ def load_uci_dataset(dataset_name: str,  dataset_size_train: int, dataset_size_t
         y_test = np.concatenate((y_test, y_test_ood))
 
     scale = True
-    x_train, y_train = post_process_data(x_scalar, y_scalar, x_train, y_train, scale=scale, generate_ood=generate_ood,
-                                         **kwargs)
-    x_test, y_test = post_process_data(x_scalar, y_scalar, x_test, y_test, scale=scale, generate_ood=generate_ood,
-                                       **kwargs)
-    x_plot, y_plot = post_process_data(x_scalar, y_scalar, x_plot, y_plot, scale=scale, generate_ood=generate_ood,
-                                       **kwargs)
+    x_train, y_train = post_process_data(x_scalar, y_scalar, x_train, y_train, scale=scale, **kwargs)
+    x_test, y_test = post_process_data(x_scalar, y_scalar, x_test, y_test, scale=scale, **kwargs)
+    x_plot, y_plot = post_process_data(x_scalar, y_scalar, x_plot, y_plot, scale=scale, **kwargs)
 
     input_shape = x_train.shape[-1]
     output_shape = y_train.shape[-1]
