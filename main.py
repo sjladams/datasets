@@ -22,6 +22,7 @@ from .luca import load_luca
 from .luca2d import load_luca2d
 from .cifar10 import load_cifar10
 from .example1d import load_example1d
+from .uva_tutorial import load_uva_tutorial
 
 
 def data_loaders(dataset_name, batch_size_train: int, batch_size_test: int, shuffle=False, sort=False, **kwargs):
@@ -83,6 +84,8 @@ def get_data_loader(dataset_name: str):
         return load_cifar10
     elif dataset_name == 'example1d':
         return load_example1d
+    elif dataset_name == 'uva_tutorial':
+        return load_uva_tutorial
     else:
         raise AssertionError("\nDataset not available.")
 
