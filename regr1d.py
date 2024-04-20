@@ -80,12 +80,12 @@ def load_regr1d(dataset_size_train: int, dataset_size_test: int, data_specs: dic
     x_plot = np.linspace(data_specs['l'] - 5., data_specs['u'] + 5., nr_plot_points)[..., None]
     y_plot = np.full((nr_plot_points, 1), np.nan)
 
-    x_scalar = StandardScaler()
-    x_scalar.fit(x_train)
-    x_scalar.mean_ -= 3. # centralise around gap
+    pre_processer_x = StandardScaler()
+    pre_processer_x.fit(x_train)
+    pre_processer_x.mean_ -= 3. # centralise around gap
 
-    y_scalar = StandardScaler()
-    y_scalar.fit(y_train)
+    pre_processer_y = StandardScaler()
+    pre_processer_y.fit(y_train)
 
     if generate_ood:
         x_train = np.linspace(data_specs['l'] - 5., data_specs['u'] + 5., dataset_size_train)[..., None]
@@ -95,9 +95,9 @@ def load_regr1d(dataset_size_train: int, dataset_size_test: int, data_specs: dic
         y_test = np.full((dataset_size_test, 1), np.nan)
 
     scale = True
-    x_train, y_train = post_process_data(x_scalar, y_scalar, x_train, y_train, scale=scale, **kwargs)
-    x_test, y_test = post_process_data(x_scalar, y_scalar, x_test, y_test, scale=scale, **kwargs)
-    x_plot, y_plot = post_process_data(x_scalar, y_scalar, x_plot, y_plot, scale=scale, **kwargs)
+    x_train, y_train = post_process_data(pre_processer_x, pre_processer_y, x_train, y_train, scale=scale, **kwargs)
+    x_test, y_test = post_process_data(pre_processer_x, pre_processer_y, x_test, y_test, scale=scale, **kwargs)
+    x_plot, y_plot = post_process_data(pre_processer_x, pre_processer_y, x_plot, y_plot, scale=scale, **kwargs)
 
     input_shape = x_train.shape[-1]
     output_shape = y_train.shape[-1]

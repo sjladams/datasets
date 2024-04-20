@@ -6,11 +6,8 @@ import torch
 from .utils import post_process_data, pickle_dump
 
 
-def load_example1d(dataset_size_train: int, dataset_size_test: int, data_specs: dict,
-                   generate_ood: bool = False, **kwargs):
-    """
-
-    """
+def load_example1d(data_specs: dict, dataset_size_train: int = 4032, dataset_size_test: int = 4032,
+                   dataset_size_plot: int = 100, generate_ood: bool = False, **kwargs):
     path = '{}/{}'.format(os.path.dirname(__file__), '/example1d/')
     inputs_file_path = os.path.join(path, 'train_inputs')
     outputs_file_path = os.path.join(path, 'train_outputs')
@@ -35,16 +32,15 @@ def load_example1d(dataset_size_train: int, dataset_size_test: int, data_specs: 
     ood_expansion = window * 0.25
 
     # use uniform grid for plot values
-    nr_plot_points = 100
-    x_plot = np.linspace(x.min() - ood_expansion, x.max() + ood_expansion, nr_plot_points)[..., None]
-    y_plot = np.full((nr_plot_points, 1), np.nan)
+    x_plot = np.linspace(x.min() - ood_expansion, x.max() + ood_expansion, dataset_size_plot).view(-1, 1)
+    y_plot = np.full((dataset_size_plot, 1), np.nan)
 
-    x_scalar = StandardScaler()
-    x_scalar.fit(x_raw)
-    x_scalar.mean_ = np.array([0.])
+    pre_processer_x = StandardScaler()
+    pre_processer_x.fit(x_raw)
+    pre_processer_x.mean_ = np.array([0.])
 
-    y_scalar = StandardScaler()
-    y_scalar.fit(y_raw)
+    pre_processer_y = StandardScaler()
+    pre_processer_y.fit(y_raw)
 
     if generate_ood:
         x_train = np.linspace(x.min() - ood_expansion, x.max() + ood_expansion, dataset_size_train)[..., None]
@@ -54,9 +50,9 @@ def load_example1d(dataset_size_train: int, dataset_size_test: int, data_specs: 
         y_test = np.full((dataset_size_test, 1), np.nan)
 
     scale = True
-    x_train, y_train = post_process_data(x_scalar, y_scalar, x_train, y_train, scale=scale, **kwargs)
-    x_test, y_test = post_process_data(x_scalar, y_scalar, x_test, y_test, scale=scale, **kwargs)
-    x_plot, y_plot = post_process_data(x_scalar, y_scalar, x_plot, y_plot, scale=scale, **kwargs)
+    x_train, y_train = post_process_data(pre_processer_x, pre_processer_y, x_train, y_train, scale=scale, **kwargs)
+    x_test, y_test = post_process_data(pre_processer_x, pre_processer_y, x_test, y_test, scale=scale, **kwargs)
+    x_plot, y_plot = post_process_data(pre_processer_x, pre_processer_y, x_plot, y_plot, scale=scale, **kwargs)
 
     input_shape = x_train.shape[-1]
     output_shape = y_train.shape[-1]

@@ -49,11 +49,11 @@ def load_snelson1d(dataset_size_train: int, dataset_size_test: int, data_specs: 
     x_plot = np.linspace(round(x.min() - ood_expansion), round(x.max() + ood_expansion), nr_plot_points)[..., None]
     y_plot = np.full((nr_plot_points, 1), np.nan)
 
-    x_scalar = StandardScaler()
-    x_scalar.fit(x_raw)
+    pre_processer_x = StandardScaler()
+    pre_processer_x.fit(x_raw)
 
-    y_scalar = StandardScaler()
-    y_scalar.fit(y_raw)
+    pre_processer_y = StandardScaler()
+    pre_processer_y.fit(y_raw)
 
     if generate_ood:
         x_train = np.linspace(x.min() - ood_expansion, x.max() + ood_expansion, dataset_size_train)[..., None]
@@ -63,9 +63,9 @@ def load_snelson1d(dataset_size_train: int, dataset_size_test: int, data_specs: 
         y_test = np.full((dataset_size_test, 1), np.nan)
 
     scale = True
-    x_train, y_train = post_process_data(x_scalar, y_scalar, x_train, y_train, scale=scale, **kwargs)
-    x_test, y_test = post_process_data(x_scalar, y_scalar, x_test, y_test, scale=scale, **kwargs)
-    x_plot, y_plot = post_process_data(x_scalar, y_scalar, x_plot, y_plot, scale=scale, **kwargs)
+    x_train, y_train = post_process_data(pre_processer_x, pre_processer_y, x_train, y_train, scale=scale, **kwargs)
+    x_test, y_test = post_process_data(pre_processer_x, pre_processer_y, x_test, y_test, scale=scale, **kwargs)
+    x_plot, y_plot = post_process_data(pre_processer_x, pre_processer_y, x_plot, y_plot, scale=scale, **kwargs)
 
     input_shape = x_train.shape[-1]
     output_shape = y_train.shape[-1]

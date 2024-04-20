@@ -86,10 +86,10 @@ def scale_data(scalar, data: np.array, scale: bool = True) -> torch.tensor:
         return torch.from_numpy(data).type(torch.float32)
 
 
-def post_process_data(x_scalar: StandardScaler, y_scalar: StandardScaler, x: torch.Tensor, y: torch.Tensor,
+def post_process_data(pre_processer_x: StandardScaler, pre_processer_y: StandardScaler, x: np.array, y: np.array,
                       scale: bool = True, generate_paths: bool = False, **kwargs):
-    x = scale_data(x_scalar, x, scale=scale)
-    y = scale_data(y_scalar, y, scale=scale)
+    x = scale_data(pre_processer_x, x, scale=scale)
+    y = scale_data(pre_processer_y, y, scale=scale)
     if generate_paths:
         x, y = dataset_points_to_paths(x, y, **kwargs)
     return x, y
@@ -133,11 +133,11 @@ def load_uci_dataset(dataset_name: str,  dataset_size_train: int, dataset_size_t
     x_plot[:, plot_dim] = np.linspace(x_train[:, plot_dim].min(), x_train[:, plot_dim].max(), nr_plot_points)
     y_plot = np.zeros((nr_plot_points, out_features))
 
-    x_scalar = StandardScaler()
-    x_scalar.fit(x_train)
+    pre_processer_x = StandardScaler()
+    pre_processer_x.fit(x_train)
 
-    y_scalar = StandardScaler()
-    y_scalar.fit(y_train)
+    pre_processer_y = StandardScaler()
+    pre_processer_y.fit(y_train)
 
     if generate_ood:
         # use x% datapoints using uniformly sampled point from the input domain # \todo specify desired set size
@@ -157,10 +157,49 @@ def load_uci_dataset(dataset_name: str,  dataset_size_train: int, dataset_size_t
         y_test = np.concatenate((y_test, y_test_ood))
 
     scale = True
-    x_train, y_train = post_process_data(x_scalar, y_scalar, x_train, y_train, scale=scale, **kwargs)
-    x_test, y_test = post_process_data(x_scalar, y_scalar, x_test, y_test, scale=scale, **kwargs)
-    x_plot, y_plot = post_process_data(x_scalar, y_scalar, x_plot, y_plot, scale=scale, **kwargs)
+    x_train, y_train = post_process_data(pre_processer_x, pre_processer_y, x_train, y_train, scale=scale, **kwargs)
+    x_test, y_test = post_process_data(pre_processer_x, pre_processer_y, x_test, y_test, scale=scale, **kwargs)
+    x_plot, y_plot = post_process_data(pre_processer_x, pre_processer_y, x_plot, y_plot, scale=scale, **kwargs)
 
     input_shape = x_train.shape[-1]
     output_shape = y_train.shape[-1]
     return x_train, y_train, x_test, y_test, x_plot, y_plot, input_shape, output_shape
+
+
+def zscore_normalization(x: torch.Tensor, loc: torch.Tensor = None, scale: torch.Tensor = None, eps: float = 1e-10):
+    """Apply z-score normalization on a given data.
+
+    Args:
+        x: shape [batch_size, num_dims], the input dataset.
+        loc: shape [num_dims], the given mean of the dataset.
+        scale: shape [num_dims], the given variance of the dataset.
+
+    Returns:
+        the normalized dataset and the resulting mean and variance.
+    """
+    if x is None:
+        return None, None, None
+
+    if loc is None:
+        loc = x.mean(0)
+    if scale is None:
+        scale = x.std(0)
+
+    x_normalized = (x - loc) / (scale + eps)
+
+    return x_normalized, loc, scale
+
+
+def zscore_unnormalization(x_normalized: torch.Tensor, loc: torch.Tensor, scale: torch.Tensor):
+    """Unnormalize a given dataset.
+
+    Args:
+        x_normalized: shape [batch_size, num_dims], the
+            dataset needs to be unnormalized.
+        loc: shape [num_dims], the given mean of the dataset.
+        scale: shape [num_dims], the given variance of the dataset.
+
+    Returns:
+        shape [batch_size, num_dims] the unnormalized dataset.
+    """
+    return x_normalized * scale + loc
