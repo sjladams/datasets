@@ -8,23 +8,20 @@ from torchvision import transforms
 from .utils import to_categorical, dataset_points_to_paths
 
 
-def load_cifar10(dataset_size_train: int = 52500, dataset_size_test: int = 7500, flatten: bool = False,
+def load_cifar10(dataset_size_train: int = 50000, dataset_size_test: int = 10000, flatten: bool = False,
                  debug: bool = False, generate_paths: bool = False, **kwargs):
     img_rows, img_cols, img_channels = 32, 32, 3
 
     file_path = '{}/{}'.format(os.path.dirname(__file__), '/cifar10')
-    cifar10 = datasets.CIFAR10(file_path, train=True, download=True,
-                       transform=transforms.Compose([transforms.ToTensor(),]))
+    train_dataset = datasets.CIFAR10(file_path, train=True, download=True,
+                                     transform=transforms.Compose([transforms.ToTensor(), ]))
+    test_dataset = datasets.CIFAR10(file_path, train=False, download=True,
+                                    transform=transforms.Compose([transforms.ToTensor(), ]))
 
-    train_points = int(cifar10.data.shape[0] * (dataset_size_train / (dataset_size_train + dataset_size_test)))
-    test_points = int(cifar10.data.shape[0] * (dataset_size_test / (dataset_size_train + dataset_size_test)))
-
-    cifar10_train, cifar10_test = random_split(cifar10, [train_points, test_points])
-
-    x_train = torch.tensor(cifar10.data[cifar10_train.indices] / 255).type(torch.float32)
-    y_train = to_categorical(np.array(cifar10.targets)[cifar10_train.indices], 10)
-    x_test = torch.tensor(cifar10.data[cifar10_test.indices] / 255).type(torch.float32)
-    y_test = to_categorical(np.array(cifar10.targets)[cifar10_test.indices], 10)
+    x_train = train_dataset.data / 255
+    y_train = to_categorical(train_dataset.targets, 10)
+    x_test = test_dataset.data / 255
+    y_test = to_categorical(test_dataset.targets, 10)
 
     # create grid of path_length * classes for plotting
     mask = []
@@ -59,32 +56,3 @@ def load_cifar10(dataset_size_train: int = 52500, dataset_size_test: int = 7500,
         input_shape = x_train.shape[-3:]
         output_shape = y_train.shape[-1]
     return x_train, y_train, x_test, y_test, x_plot, y_plot, input_shape, output_shape
-
-
-# def load_cifar(channels, img_rows=32, img_cols=32):
-    # path = "{}/examples/cifar/data".format(os.getcwd())
-    # trainset = datasets.CIFAR10(root=path, train=True, download=True,
-    #                             transform=transforms.Compose([transforms.ToTensor(),]))
-    # x_train = torch.from_numpy(trainset.data) / 255
-    # y_train = to_categorical(torch.tensor(trainset.targets), 10)
-    #
-    # # testset = datasets.CIFAR10(root=path, train=False, download=True,
-    # #                            transform=transforms.Compose([transforms.ToTensor(),]))
-    # # x_test = torch.from_numpy(testset.data) / 255
-    # # y_test = to_categorical(torch.tensor(testset.targets), 10)
-    # #
-    # # np.save(f"{path}/x_test_deepmind", testset.data / 255)
-    # # np.save(f"{path}/y_test_deepmind", testset.targets)
-    #
-    # x_test = torch.from_numpy(pickle_load(f"{path}/x_test_deepmind.npy")).type(torch.float32)
-    # y_test = to_categorical(pickle_load(f"{path}/y_test_deepmind.npy"), 10).type(torch.float32)
-    #
-    # # if channels == "first":
-    # #     x_train = x_train.reshape(-1, 32 * 32 *3)
-    # #     x_test = x_test.reshape(-1, 32 * 32 *3)
-    # x_train = x_train.moveaxis(3, 1)
-    # x_test = x_test.moveaxis(3, 1)
-    #
-    # input_shape = x_train.shape[1:]
-    # num_classes = 10
-    # return x_train, y_train, x_test, y_test, input_shape, num_classes
