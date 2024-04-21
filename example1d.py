@@ -32,7 +32,7 @@ def load_example1d(data_specs: dict, dataset_size_train: int = 4032, dataset_siz
     ood_expansion = window * 0.25
 
     # use uniform grid for plot values
-    x_plot = np.linspace(x.min() - ood_expansion, x.max() + ood_expansion, dataset_size_plot).view(-1, 1)
+    x_plot = np.linspace(x.min() - ood_expansion, x.max() + ood_expansion, dataset_size_plot)[..., None]
     y_plot = np.full((dataset_size_plot, 1), np.nan)
 
     pre_processer_x = StandardScaler()

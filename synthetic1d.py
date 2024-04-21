@@ -64,10 +64,10 @@ def load_synthetic1d(dataset_size_train: int = 64, dataset_size_test: int = 64, 
     pre_processer_y.fit(y)
 
     if generate_ood:
-        x_train = np.linspace(x_plot.min(), x_plot.max(), dataset_size_train).view(-1, 1)
+        x_train = np.linspace(x_plot.min(), x_plot.max(), dataset_size_train).reshape(-1, 1)
         y_train = np.full((dataset_size_train, 1), np.nan)
 
-        x_test = np.linspace(x_plot.min(), x_plot.max(), dataset_size_test).view(-1, 1)
+        x_test = np.linspace(x_plot.min(), x_plot.max(), dataset_size_test).reshape(-1, 1)
         y_test = np.full((dataset_size_test, 1), np.nan)
 
     scale = True
