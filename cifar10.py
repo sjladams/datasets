@@ -18,9 +18,9 @@ def load_cifar10(dataset_size_train: int = 50000, dataset_size_test: int = 10000
     test_dataset = datasets.CIFAR10(file_path, train=False, download=True,
                                     transform=transforms.Compose([transforms.ToTensor(), ]))
 
-    x_train = train_dataset.data / 255
+    x_train = torch.from_numpy(train_dataset.data) / 255
     y_train = to_categorical(train_dataset.targets, 10)
-    x_test = test_dataset.data / 255
+    x_test = torch.from_numpy(test_dataset.data) / 255
     y_test = to_categorical(test_dataset.targets, 10)
 
     # create grid of path_length * classes for plotting
