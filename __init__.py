@@ -1,3 +1,3 @@
-from .main import data_loaders
+from .main import get_dataset, get_data_loader
 
-__all__ = ['data_loaders']
+__all__ = ['get_dataset', 'get_data_loader']

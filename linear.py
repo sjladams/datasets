@@ -11,5 +11,5 @@ def load_linear(train_dataset_size: int = 2**10, test_dataset_size: int = 2**10,
     x_test = xdata(dataset_size=test_dataset_size, generate_random=True, **kwargs)
     y_test = linear(x_test)
 
-    input_shape, output_shape = x_train.shape[-1], y_train.shape[-1]
-    return x_train, y_train, x_test, y_test, input_shape, output_shape
+    input_size, output_size = x_train.shape[-1], y_train.shape[-1]
+    return x_train, y_train, x_test, y_test, input_size, output_size

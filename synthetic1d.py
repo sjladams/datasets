@@ -3,7 +3,7 @@ import numpy as np
 from sklearn.preprocessing import StandardScaler
 import torch
 
-from .utils import post_process_data, pickle_dump, zscore_normalization
+from .utils import post_process_data, pickle_dump
 
 
 def make_random_gap(X, gap_ratio=0.2):
@@ -25,13 +25,13 @@ def gp_sample(X, ampl: float = 1, leng: float = 1, sn2: float = 0.1):
     return np.random.multivariate_normal(np.zeros(n), C).reshape(-1, 1)
 
 
-def load_synthetic1d(dataset_size_train: int = 64, dataset_size_test: int = 64, dataset_size_plot: int = 100, 
+def load_synthetic1d(len_train_dataset: int = 64, len_test_dataset: int = 64, dataset_size_plot: int = 100, 
                      generate_ood: bool = False, **kwargs):
     """
     Dataset introduced in: All You Need is a Good Functional Prior for Bayesian Deep Learning, B. Tran, S. Rossi,
     Milios et al.
-    :param dataset_size_train:
-    :param dataset_size_test:
+    :param len_train_dataset:
+    :param len_test_dataset:
     :param generate_ood:
     :param kwargs:
     :return:
@@ -48,13 +48,13 @@ def load_synthetic1d(dataset_size_train: int = 64, dataset_size_test: int = 64, 
     x_train, y_train = x, y
     x_test, y_test = x.copy(), y.copy()
 
-    x_train = x_train[:dataset_size_train, :]
-    y_train = y_train[:dataset_size_train]
+    x_train = x_train[:len_train_dataset, :]
+    y_train = y_train[:len_train_dataset]
 
-    x_test = x_test[-dataset_size_test:, :]
-    y_test = y_test[-dataset_size_test:]
+    x_test = x_test[-len_test_dataset:, :]
+    y_test = y_test[-len_test_dataset:]
 
-    x_plot = np.linspace(a - 5, b + 5, dataset_size_test).reshape(-1, 1)
+    x_plot = np.linspace(a - 5, b + 5, len_test_dataset).reshape(-1, 1)
     y_plot = np.full((dataset_size_plot, 1), np.nan)
 
     pre_processer_x = StandardScaler()
@@ -64,18 +64,18 @@ def load_synthetic1d(dataset_size_train: int = 64, dataset_size_test: int = 64, 
     pre_processer_y.fit(y)
 
     if generate_ood:
-        x_train = np.linspace(x_plot.min(), x_plot.max(), dataset_size_train).reshape(-1, 1)
-        y_train = np.full((dataset_size_train, 1), np.nan)
+        x_train = np.linspace(x_plot.min(), x_plot.max(), len_train_dataset).reshape(-1, 1)
+        y_train = np.full((len_train_dataset, 1), np.nan)
 
-        x_test = np.linspace(x_plot.min(), x_plot.max(), dataset_size_test).reshape(-1, 1)
-        y_test = np.full((dataset_size_test, 1), np.nan)
+        x_test = np.linspace(x_plot.min(), x_plot.max(), len_test_dataset).reshape(-1, 1)
+        y_test = np.full((len_test_dataset, 1), np.nan)
 
     scale = True
     x_train, y_train = post_process_data(pre_processer_x, pre_processer_y, x_train, y_train, scale=scale, **kwargs)
     x_test, y_test = post_process_data(pre_processer_x, pre_processer_y, x_test, y_test, scale=scale, **kwargs)
     x_plot, y_plot = post_process_data(pre_processer_x, pre_processer_y, x_plot, y_plot, scale=scale, **kwargs)
 
-    input_shape = x_train.shape[-1]
-    output_shape = y_train.shape[-1]
+    input_size = x_train.shape[-1]
+    output_size = y_train.shape[-1]
 
-    return x_train, y_train, x_test, y_test, x_plot, y_plot, input_shape, output_shape
+    return x_train, y_train, x_test, y_test, x_plot, y_plot, input_size, output_size

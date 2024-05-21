@@ -3,39 +3,101 @@ import numpy as np
 from sklearn.preprocessing import StandardScaler
 import os
 import pickle
+from typing import Tuple, Optional, Callable, Any, Union
+from torch.utils.data import Dataset
+from PIL import Image
+from torchvision import transforms
 
 
-def points_to_paths(x, path_length: int, path_window_step: float, sampled_window: bool = False,
-                    wiener_window: bool = False, fixed_window: bool = True, **kwargs):
+class FlattenTransform:
+    def __init__(self, start_dim: int = 0, end_dim: int = -1):
+        self.start_dim = start_dim
+        self.end_dim = end_dim
+
+    def __call__(self, tensor: torch.Tensor) -> torch.Tensor:
+        return tensor.flatten(start_dim=self.start_dim, end_dim=self.end_dim)
+
+
+class MoveChannelTransform:
+    def __init__(self, source: int = -1, destination: int = 0):
+        self.source = source
+        self.destination = destination
+
+    def __call__(self, tensor: torch.Tensor):
+        return tensor.movedim(self.source, self.destination)
+
+
+class NormalizeTransform:
+    """
+    Apply z-score normalization on a given data.
+    """
+    def __init__(self, mean, std, eps: float = 1e-10):
+        self.mean = mean
+        self.std = std
+        self.eps = eps
+
+    def __call__(self, sample):
+        return (sample - self.mean) / (self.std + self.eps)
+
+
+def points_to_paths(x: torch.Tensor, path_length: int, path_step: float = None, y: torch.Tensor = None,
+                    sample_path: bool = False, wiener_window: bool = False, fixed_window: bool = True, 
+                    num_input_dims: int = 1, **kwargs) -> Tuple[torch.Tensor, torch.Tensor]:
     """
     wiener process: w_k = w_k-1 + dw, dw \ sim N(0, 1)
     :param x:
+    :param y:
     :param path_length:
-    :param path_window_step:
-    :param sampled_window:
+    :param path_step:
+    :param sample_path:
     :param wiener_window:
     :param fixed_window:
+    :param num_input_dims
     :param kwargs:
     :return:
     """
-    batch_size = x.shape[:-1]
-    features = x.shape[-1]
-    if sampled_window:
-        p = torch.ones(batch_size.numel()) * (1/batch_size.numel())
-        idxs = p.multinomial(num_samples=batch_size.numel() * path_length, replacement=True)
-        x_paths = x.reshape(batch_size.numel(), features)[idxs].reshape(batch_size + (path_length, features))
+    input_size = x.shape[-num_input_dims:]
+    batch_size = x.shape[:-num_input_dims]
+
+    if y is None:
+        y_paths = None
+    else:
+        output_size = y.shape[batch_size.__len__():]
+
+    if sample_path:
+        in_features_flat = input_size.numel()
+        x = x.flatten(-num_input_dims)
+
+        p = torch.ones(batch_size[-1]) * (1/batch_size[-1])
+        idxs = p.multinomial(num_samples=batch_size[-1] * path_length, replacement=True).unsqueeze(-1)
+        if batch_size.__len__() > 1:
+            idxs.unsqueeze(0)
+
+        x_paths = torch.gather(x, -2, idxs.expand(batch_size[:-1] + (-1, in_features_flat))).reshape(
+            batch_size + (path_length,) + input_size)
+        if y is not None:
+            y_paths = torch.gather(y, -(output_size.__len__() + 1),
+                                   idxs.expand(batch_size[:-1] + (-1, ) + output_size)).reshape(
+                batch_size + (path_length, ) + output_size)
+    elif num_input_dims > 1:
+        raise NotImplementedError("wiener_window and fixed window not implemented for num_input_dim>1")
     elif wiener_window:
         triangle = torch.ones((path_length, path_length)).tril()
-        dw = torch.randn(batch_size + (path_length,) + (features,))
+        dw = torch.randn(batch_size + (path_length,) + input_size)
         dw[..., 0, :] = 0.
         w = torch.einsum('lp,...pf->...lf', triangle, dw)
-        x_paths = x[..., None, :].repeat(len(batch_size) * (1,) + (path_length, ) + (1,)) + w
+        x_paths = x.unsqueeze(-2).expand(batch_size + (path_length,) + input_size) + w
+        if y is not None:
+            y_paths = torch.zeros(batch_size + (path_length, ) + output_size).fill_(torch.nan)
     elif fixed_window:
-        window = torch.arange(-path_length // 2 + 1, path_length // 2 + 1) * path_window_step
-        x_paths = torch.hstack(path_length * (x[..., None, :],)) + torch.hstack(features * (window[..., None], ))
+        window = torch.arange(-path_length // 2 + 1, path_length // 2 + 1) * path_step
+        x_paths = x.unsqueeze(-2).expand(batch_size + (path_length, ) + input_size) + window.unsqueeze(-1)
+        if y is not None:
+            y_paths = torch.zeros(batch_size + (path_length, ) + output_size).fill_(torch.nan)
     else:
         raise NotImplementedError
-    return x_paths
+
+    return x_paths, y_paths
 
 
 def pickle_dump(obj, tag):
@@ -66,15 +128,15 @@ def to_categorical(y, num_classes):
     return torch.eye(num_classes)[y]
 
 
-def dataset_points_to_paths(x: torch.Tensor, y: torch.Tensor, path_length: int, sampled_window: bool, **kwargs) -> \
-        (torch.tensor, torch.tensor):
+def dataset_points_to_paths(x: torch.Tensor, y: torch.Tensor, path_length: int, sample_path: bool, **kwargs) -> \
+        (torch.tensor, torch.tensor): # \todo to be removed
     """
     :param x: Size(batch_size, in_features)
     :param y: Size(batch_size, out_features)
     :param path_length
-    :param sampled_window
+    :param sample_path
     """
-    x_paths = points_to_paths(x, path_length=path_length, sampled_window=sampled_window, **kwargs)
+    x_paths = points_to_paths(x, path_length=path_length, sample_path=sample_path, **kwargs)
     y_paths = torch.empty(x_paths.shape[:-1] + (y.shape[-1],)).fill_(torch.nan)
     return x_paths, y_paths
 
@@ -95,7 +157,147 @@ def post_process_data(pre_processer_x: StandardScaler, pre_processer_y: Standard
     return x, y
 
 
-def load_uci_dataset(dataset_name: str,  dataset_size_train: int, dataset_size_test: int, generate_ood: bool = False,
+class UCIRegressionDataset(Dataset):  # \todo use TensorDataset?
+    def __init__(self, dataset_name: str, train: bool = True, paths: bool = False, ood: bool = False,
+                 input_transform: Optional[Callable] = None, output_transform: Optional[Callable] = None,
+                 **kwargs):
+        self.train = train
+        self.ood = ood
+        self.paths = paths
+        self.dataset_name = dataset_name
+        self.input_transform, self.output_transform = input_transform, output_transform
+        self.inputs, self.outputs = self._load_data(**kwargs)
+
+    def _load_data(self, in_features: int, out_features: int, len_dataset: Optional[int] = None,
+                   ratio_ood_samples: float = 0.5, uniform_ood_sampling: bool = False,
+                   uniform_ood_sapling_dim: int = 0, **kwargs):
+        folder_root = f"{os.path.dirname(__file__)}{os.sep}{self.dataset_name}"
+        data_root = f"{folder_root}{os.sep}data.txt.gz"
+        if os.path.exists(data_root):
+            data = np.loadtxt(data_root)
+            data = torch.from_numpy(data).to(torch.float32)
+            inputs, outputs = data[:, :-out_features], data[:, -out_features:]
+        else:
+            raise NotImplementedError('data file not available')
+
+        if len_dataset is None:
+            len_dataset = inputs.shape[0]
+        else:
+            len_dataset = min(inputs.shape[0], len_dataset)
+
+        indices_root = f"{folder_root}{os.sep}{'train' if self.train else 'test'}_indices_size={len_dataset}.txt.gz"
+        if os.path.exists(indices_root):
+            indices = np.loadtxt(indices_root).astype(int)
+        else:
+            indices = np.arange(inputs.shape[0])
+            np.random.shuffle(indices)
+            indices = indices[:len_dataset]
+            np.savetxt(indices_root, indices)
+
+        inputs, outputs = inputs[indices], outputs[indices]
+
+        if self.ood:
+            if uniform_ood_sampling:
+                # set all dimensions other than uniform_ood_sapling_dim to means
+                domain_sampling_dim = [inputs[:, uniform_ood_sapling_dim].min(),
+                                       inputs[:, uniform_ood_sapling_dim].max()]
+                inputs = inputs.mean(0)
+                inputs = inputs.unsqueeze(0).expand(len_dataset, in_features).clone()
+                inputs[:, uniform_ood_sapling_dim] = torch.linspace(*domain_sampling_dim, len_dataset)
+                outputs = torch.zeros(len_dataset, out_features).fill_(torch.nan)
+            else:
+                num_ood_samples = int(inputs.shape[0] * ratio_ood_samples / (1 - ratio_ood_samples))
+                domain = [inputs.min(0).values, inputs.max(0).values]
+
+                ood_inputs = domain[0] + (domain[1] - domain[0]) * torch.rand(num_ood_samples, in_features)
+                ood_outputs = torch.zeros(num_ood_samples, out_features).fill_(torch.nan)
+
+                inputs = torch.cat((inputs, ood_inputs))
+                outputs = torch.cat((outputs, ood_outputs))
+
+        if self.paths:
+            inputs, outputs = points_to_paths(x=inputs, y=outputs, **kwargs)
+
+        return inputs, outputs
+
+    @property
+    def mean_inputs(self):
+        return self.inputs.mean(0)
+
+    @property
+    def std_inputs(self):
+        return self.inputs.std(0)
+
+    @property
+    def mean_outputs(self):
+        return self.outputs.mean(0)
+
+    @property
+    def std_outputs(self):
+        return self.outputs.std(0)
+
+    def __len__(self):
+        return self.inputs.shape[0]
+
+    def __getitem__(self, index: int) -> Tuple[Any, Any]:
+        input, output = self.inputs[index], self.outputs[index]
+
+        if self.input_transform is not None:
+            input = self.input_transform(input)
+
+        if self.output_transform is not None:
+            output = self.output_transform(output)
+
+        return input, output
+
+
+class ClassificationDataset(Dataset):  # \todo use TensorDataset?
+    def __init__(self, train: bool, paths: bool, data: torch.Tensor, targets: torch.Tensor, len_dataset: int,
+                 mode: Optional[str], num_classes: int, transform: Optional[Callable] = None,
+                 target_transform: Optional[Callable] = None, **kwargs):
+        self.train = train
+        self.paths = paths
+        self.mode = mode
+        self.img_size = data.shape[1:]
+        self.data, self.targets = self._initialize_data(data, targets, len_dataset, num_classes, **kwargs)
+        self.transform = transform
+        self.target_transform = target_transform
+
+    def _initialize_data(self, data: torch.Tensor, targets: torch.Tensor, len_dataset: int, num_classes, **kwargs):
+        data, targets = data[:len_dataset], targets[:len_dataset]
+        targets = to_categorical(targets, num_classes)
+
+        if self.paths:
+            return points_to_paths(x=data, y=targets, num_input_dims=data.dim() - 1, **kwargs)
+        else:
+            return data, targets
+
+    def __getitem__(self, index: int) -> Tuple[Any, Any]:
+        img, target = self.data[index], self.targets[index]
+        img = self._scale_image(img)
+
+        if self.transform is not None:
+            img = self.transform(img)
+
+        if self.target_transform is not None:
+            target = self.target_transform(target)
+
+        return img, target
+
+    def _scale_image(self, img: torch.Tensor):  # \todo vectorize Image.fromarray
+        if img.shape == self.img_size:
+            img = Image.fromarray(img.numpy(), mode=self.mode)
+            return transforms.functional.to_tensor(img).squeeze()
+        else:
+            return torch.stack([self._scale_image(elem) for elem in img])
+
+    def __len__(self) -> int:
+        return len(self.data)
+
+
+
+# \todo depreciate:
+def load_uci_dataset(dataset_name: str,  len_train_dataset: int, len_test_dataset: int, generate_ood: bool = False,
                      plot_dim: int = 0, in_features: int = 1, out_features: int = 1, **kwargs):
     folder_path = '{}/{}'.format(os.path.dirname(__file__), dataset_name)
     data_file_path = '{}/data.txt.gz'.format(folder_path)
@@ -106,13 +308,13 @@ def load_uci_dataset(dataset_name: str,  dataset_size_train: int, dataset_size_t
 
     x = data[:, :-out_features]; y = data[:, -out_features:]
 
-    train_indices_path = '{}/train_indices_size={}.txt.gz'.format(folder_path, dataset_size_train)
-    test_indices_path = '{}/test_indices_size={}.txt.gz'.format(folder_path, dataset_size_test)
+    train_indices_path = '{}/train_indices_size={}.txt.gz'.format(folder_path, len_train_dataset)
+    test_indices_path = '{}/test_indices_size={}.txt.gz'.format(folder_path, len_test_dataset)
     if not os.path.exists(train_indices_path) and not os.path.exists(test_indices_path):
         indices = np.arange(x.shape[0])
         np.random.shuffle(indices)
-        indices_train = indices[:dataset_size_train]
-        indices_test = indices[-dataset_size_test:]
+        indices_train = indices[:len_train_dataset]
+        indices_test = indices[-len_test_dataset:]
         np.savetxt(train_indices_path, indices_train)
         np.savetxt(test_indices_path, indices_test)
     else:
@@ -121,12 +323,6 @@ def load_uci_dataset(dataset_name: str,  dataset_size_train: int, dataset_size_t
 
     x_train, y_train = x[indices_train], y[indices_train]
     x_test, y_test = x[indices_test], y[indices_test]
-
-    # x_train = x[:dataset_size_train, :]
-    # y_train = y[:dataset_size_train]
-    #
-    # x_test = x[-dataset_size_test:, :]
-    # y_test = y[-dataset_size_test:]
 
     nr_plot_points = 10
     x_plot = np.zeros((nr_plot_points, in_features))
@@ -161,45 +357,9 @@ def load_uci_dataset(dataset_name: str,  dataset_size_train: int, dataset_size_t
     x_test, y_test = post_process_data(pre_processer_x, pre_processer_y, x_test, y_test, scale=scale, **kwargs)
     x_plot, y_plot = post_process_data(pre_processer_x, pre_processer_y, x_plot, y_plot, scale=scale, **kwargs)
 
-    input_shape = x_train.shape[-1]
-    output_shape = y_train.shape[-1]
-    return x_train, y_train, x_test, y_test, x_plot, y_plot, input_shape, output_shape
+    input_size = x_train.shape[-1]
+    output_size = y_train.shape[-1]
+    return x_train, y_train, x_test, y_test, x_plot, y_plot, input_size, output_size
 
 
-def zscore_normalization(x: torch.Tensor, loc: torch.Tensor = None, scale: torch.Tensor = None, eps: float = 1e-10):
-    """Apply z-score normalization on a given data.
 
-    Args:
-        x: shape [batch_size, num_dims], the input dataset.
-        loc: shape [num_dims], the given mean of the dataset.
-        scale: shape [num_dims], the given variance of the dataset.
-
-    Returns:
-        the normalized dataset and the resulting mean and variance.
-    """
-    if x is None:
-        return None, None, None
-
-    if loc is None:
-        loc = x.mean(0)
-    if scale is None:
-        scale = x.std(0)
-
-    x_normalized = (x - loc) / (scale + eps)
-
-    return x_normalized, loc, scale
-
-
-def zscore_unnormalization(x_normalized: torch.Tensor, loc: torch.Tensor, scale: torch.Tensor):
-    """Unnormalize a given dataset.
-
-    Args:
-        x_normalized: shape [batch_size, num_dims], the
-            dataset needs to be unnormalized.
-        loc: shape [num_dims], the given mean of the dataset.
-        scale: shape [num_dims], the given variance of the dataset.
-
-    Returns:
-        shape [batch_size, num_dims] the unnormalized dataset.
-    """
-    return x_normalized * scale + loc

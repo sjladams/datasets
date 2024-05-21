@@ -1,67 +1,97 @@
 import os
 import numpy as np
 from sklearn.preprocessing import StandardScaler
+from torch.utils.data import Dataset
 import torch
+from typing import Optional, Callable, List, Any, Tuple
 
-from .utils import post_process_data, pickle_dump
+from .utils import points_to_paths, NormalizeTransform
 
 
-def load_example1d(data_specs: dict, dataset_size_train: int = 4032, dataset_size_test: int = 4032,
-                   dataset_size_plot: int = 100, generate_ood: bool = False, **kwargs):
-    path = '{}/{}'.format(os.path.dirname(__file__), '/example1d/')
-    inputs_file_path = os.path.join(path, 'train_inputs')
-    outputs_file_path = os.path.join(path, 'train_outputs')
-    if os.path.exists(inputs_file_path) and os.path.exists(outputs_file_path):
-        x_raw = np.loadtxt(inputs_file_path)[:, None]
-        y_raw = np.loadtxt(outputs_file_path)[:, None]
-    else:
-        raise NotImplementedError('data file not available')
+class Example1dDataset(Dataset):
+    def __init__(self, root: str, train: bool = True, paths: bool = False, ood: bool = False,
+                 input_transform: Optional[Callable] = None, output_transform: Optional[Callable] = None, **kwargs):
+        self.train = train
+        self.ood = ood
+        self.paths = paths
+        self.root = root
+        self.input_transform, self.output_transform = input_transform, output_transform
+        self.inputs, self.outputs = self._load_data(**kwargs)
 
-    gap = data_specs['gap']
-    mask = np.logical_and(x_raw > gap[0], x_raw < gap[1])
-    x = x_raw[~mask][..., None]
-    y = y_raw[~mask][..., None]
+    def _load_data(self, len_dataset: Optional[int] = None, gap: Optional[list] = None,
+                   ood_domain_exp_factor: float = 0.25, **kwargs):
+        file = f"{'train' if self.train else 'test'}_data.csv"
+        data = np.loadtxt(os.path.join(self.root, file), delimiter=',', skiprows=1)
+        data = torch.from_numpy(data).to(torch.float32)
+        inputs, outputs = data[:, 0], data[:, 1]
 
-    x_train = x[:dataset_size_train, :]
-    y_train = y[:dataset_size_train]
+        if gap is not None:
+            mask = torch.logical_and(inputs > gap[0], inputs < gap[1])
+            inputs = inputs[~mask].reshape((-1, 1))
+            outputs = outputs[~mask].reshape((-1, 1))
 
-    x_test = x[-dataset_size_test:, :]
-    y_test = y[-dataset_size_test:]
+        if self.ood:
+            if len_dataset is None:
+                len_dataset = inputs.shape[0]
 
-    window = x.max() - x.min()
-    ood_expansion = window * 0.25
+            domain = [inputs.min(), inputs.max()]
+            ood_expansion = (domain[1] - domain[0]) * ood_domain_exp_factor
+            inputs = torch.linspace(domain[0] - ood_expansion, domain[1] + ood_expansion, len_dataset).view(-1, 1)
+            outputs = torch.zeros(len_dataset).fill_(torch.nan).view(-1, 1)
+        elif len_dataset is not None:
+            inputs = inputs[:len_dataset]
+            outputs = outputs[:len_dataset]
 
-    # use uniform grid for plot values
-    x_plot = np.linspace(x.min() - ood_expansion, x.max() + ood_expansion, dataset_size_plot)[..., None]
-    y_plot = np.full((dataset_size_plot, 1), np.nan)
+        if self.paths:
+            inputs, outputs = points_to_paths(x=inputs, y=outputs, **kwargs)
 
-    pre_processer_x = StandardScaler()
-    pre_processer_x.fit(x_raw)
-    pre_processer_x.mean_ = np.array([0.])
+        return inputs, outputs
 
-    pre_processer_y = StandardScaler()
-    pre_processer_y.fit(y_raw)
+    @property
+    def mean_inputs(self):
+        return self.inputs.mean(0)
 
-    if generate_ood:
-        x_train = np.linspace(x.min() - ood_expansion, x.max() + ood_expansion, dataset_size_train)[..., None]
-        y_train = np.full((dataset_size_train, 1), np.nan)
+    @property
+    def std_inputs(self):
+        return self.inputs.std(0)
 
-        x_test = np.linspace(x.min() - ood_expansion, x.max() + ood_expansion, dataset_size_test)[..., None]
-        y_test = np.full((dataset_size_test, 1), np.nan)
+    @property
+    def mean_outputs(self):
+        return self.outputs.mean(0)
 
-    scale = True
-    x_train, y_train = post_process_data(pre_processer_x, pre_processer_y, x_train, y_train, scale=scale, **kwargs)
-    x_test, y_test = post_process_data(pre_processer_x, pre_processer_y, x_test, y_test, scale=scale, **kwargs)
-    x_plot, y_plot = post_process_data(pre_processer_x, pre_processer_y, x_plot, y_plot, scale=scale, **kwargs)
+    @property
+    def std_outputs(self):
+        return self.outputs.std(0)
 
-    input_shape = x_train.shape[-1]
-    output_shape = y_train.shape[-1]
+    def __len__(self):
+        return self.inputs.shape[0]
 
-    ## save data
-    modified_data_file_path = os.path.join(path, 'modified_data')
-    if not generate_ood and not os.path.exists(f"{modified_data_file_path}.pickle"):
-        pickle_dump({'train': {'x': x_train, 'y': y_train},
-                     'test': {'x': x_test, 'y': y_test},
-                     'plot': {'x': x_plot, 'y': y_plot}}, modified_data_file_path)
+    def __getitem__(self, index: int) -> Tuple[Any, Any]:
+        input, output = self.inputs[index], self.outputs[index]
 
-    return x_train, y_train, x_test, y_test, x_plot, y_plot, input_shape, output_shape
+        if self.input_transform is not None:
+            input = self.input_transform(input)
+
+        if self.output_transform is not None:
+            output = self.output_transform(output)
+
+        return input, output
+
+
+def load_example1d(train: bool = True, len_dataset: int = 512, ood: bool = False, paths: bool = False,
+                   data_specs: dict = None, **kwargs) -> Tuple[Dataset, torch.Size, torch.Size]:
+    if data_specs is None:
+        data_specs = dict()
+
+    root = '{}/{}'.format(os.path.dirname(__file__), '/example1d/')
+    train_dataset_no_gap = Example1dDataset(root=root, train=True)
+    input_transform = NormalizeTransform(mean=torch.zeros(1), std=train_dataset_no_gap.std_inputs)
+    output_transform = NormalizeTransform(mean=train_dataset_no_gap.mean_outputs, std=train_dataset_no_gap.std_outputs)
+
+    dataset = Example1dDataset(root=root, paths=paths, train=train, ood=ood, len_dataset=len_dataset,
+                               input_transform=input_transform, output_transform=output_transform, **data_specs,
+                               **kwargs)
+    input_size = dataset[0][0].shape
+    output_size = dataset[0][1].shape
+
+    return dataset, input_size, output_size

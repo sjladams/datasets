@@ -46,13 +46,13 @@ def get_regr1d_dataset(l: float, u: float):
 #         return torch.zeros(x.shape[:-1] + (1,))
 
 
-def load_regr1d(dataset_size_train: int, dataset_size_test: int, data_specs: dict,
+def load_regr1d(len_train_dataset: int, len_test_dataset: int, data_specs: dict,
                    generate_ood: bool = False, nr_plot_points: int = 1000, **kwargs):
     """
     1d regression dataset from https://arxiv.org/abs/2011.12829
 
-    :param dataset_size_train:
-    :param dataset_size_test:
+    :param len_train_dataset:
+    :param len_test_dataset:
     :param data_specs:
     :param generate_ood: if true, return samples from dataset, else generate (grid of) samples
     :param l: lower bound dataset
@@ -70,11 +70,11 @@ def load_regr1d(dataset_size_train: int, dataset_size_test: int, data_specs: dic
         np.savetxt(inputs_file_path, x)
         np.savetxt(outputs_file_path, y)
 
-    x_train = x[:dataset_size_train, :]
-    y_train = y[:dataset_size_train]
+    x_train = x[:len_train_dataset, :]
+    y_train = y[:len_train_dataset]
 
-    x_test = x[-dataset_size_test:, :]
-    y_test = y[-dataset_size_test:]
+    x_test = x[-len_test_dataset:, :]
+    y_test = y[-len_test_dataset:]
 
     # use uniform grid for plot values
     x_plot = np.linspace(data_specs['l'] - 5., data_specs['u'] + 5., nr_plot_points)[..., None]
@@ -88,17 +88,17 @@ def load_regr1d(dataset_size_train: int, dataset_size_test: int, data_specs: dic
     pre_processer_y.fit(y_train)
 
     if generate_ood:
-        x_train = np.linspace(data_specs['l'] - 5., data_specs['u'] + 5., dataset_size_train)[..., None]
-        y_train = np.full((dataset_size_train, 1), np.nan)
+        x_train = np.linspace(data_specs['l'] - 5., data_specs['u'] + 5., len_train_dataset)[..., None]
+        y_train = np.full((len_train_dataset, 1), np.nan)
 
-        x_test = np.linspace(data_specs['l'] - 5., data_specs['u'] + 5., dataset_size_test)[..., None]
-        y_test = np.full((dataset_size_test, 1), np.nan)
+        x_test = np.linspace(data_specs['l'] - 5., data_specs['u'] + 5., len_test_dataset)[..., None]
+        y_test = np.full((len_test_dataset, 1), np.nan)
 
     scale = True
     x_train, y_train = post_process_data(pre_processer_x, pre_processer_y, x_train, y_train, scale=scale, **kwargs)
     x_test, y_test = post_process_data(pre_processer_x, pre_processer_y, x_test, y_test, scale=scale, **kwargs)
     x_plot, y_plot = post_process_data(pre_processer_x, pre_processer_y, x_plot, y_plot, scale=scale, **kwargs)
 
-    input_shape = x_train.shape[-1]
-    output_shape = y_train.shape[-1]
-    return x_train, y_train, x_test, y_test, x_plot, y_plot, input_shape, output_shape
+    input_size = x_train.shape[-1]
+    output_size = y_train.shape[-1]
+    return x_train, y_train, x_test, y_test, x_plot, y_plot, input_size, output_size

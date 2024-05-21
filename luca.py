@@ -5,7 +5,7 @@ from sklearn.preprocessing import StandardScaler
 from .utils import post_process_data
 
 
-def load_luca(dataset_size_train: int = None, dataset_size_test: int = None, **kwargs):
+def load_luca(len_train_dataset: int = None, len_test_dataset: int = None, **kwargs):
     folder_path = '{}/luca'.format(os.path.dirname(__file__))
     data_file_path = '{}/data.txt.gz'.format(folder_path)
     if os.path.exists(data_file_path):
@@ -15,18 +15,18 @@ def load_luca(dataset_size_train: int = None, dataset_size_test: int = None, **k
 
     x = data[:, :-1]; y = data[:, -1:]
 
-    if dataset_size_train is None:
-        dataset_size_train = x.shape[0]
-    if dataset_size_test is None:
-        dataset_size_test = x.shape[0]
+    if len_train_dataset is None:
+        len_train_dataset = x.shape[0]
+    if len_test_dataset is None:
+        len_test_dataset = x.shape[0]
 
-    train_indices_path = '{}/train_indices_size={}.txt.gz'.format(folder_path, dataset_size_train)
-    test_indices_path = '{}/test_indices_size={}.txt.gz'.format(folder_path, dataset_size_test)
+    train_indices_path = '{}/train_indices_size={}.txt.gz'.format(folder_path, len_train_dataset)
+    test_indices_path = '{}/test_indices_size={}.txt.gz'.format(folder_path, len_test_dataset)
     if not os.path.exists(train_indices_path) and not os.path.exists(test_indices_path):
         indices = np.arange(x.shape[0])
         np.random.shuffle(indices)
-        indices_train = indices[:dataset_size_train]
-        indices_test = indices[-dataset_size_test:]
+        indices_train = indices[:len_train_dataset]
+        indices_test = indices[-len_test_dataset:]
         np.savetxt(train_indices_path, indices_train)
         np.savetxt(test_indices_path, indices_test)
     else:
@@ -49,6 +49,6 @@ def load_luca(dataset_size_train: int = None, dataset_size_test: int = None, **k
     sorting_mask = x_test.sort(dim=0).indices[:, 0]  # order test data w.r.t. 1st dimension
     x_plot, y_plot = x_test[sorting_mask], y_test[sorting_mask]
 
-    input_shape = x_train.shape[-1]
-    output_shape = y_train.shape[-1]
-    return x_train, y_train, x_test, y_test, x_plot, y_plot, input_shape, output_shape
+    input_size = x_train.shape[-1]
+    output_size = y_train.shape[-1]
+    return x_train, y_train, x_test, y_test, x_plot, y_plot, input_size, output_size
