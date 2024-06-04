@@ -24,6 +24,7 @@ from .cifar10 import load_cifar10
 from .example1d import load_example1d
 from .uva_tutorial import load_uva_tutorial
 from .synthetic1d import load_synthetic1d
+from .prior1d import load_prior1d
 
 
 def get_dataset(dataset_name: str, paths=False, **kwargs) -> Tuple[Dataset, torch.Size, torch.Size]:
@@ -96,5 +97,7 @@ def _get_dataset_loader(dataset_name: str):
     elif dataset_name == 'synthetic1d':
         raise NotImplementedError
         return load_synthetic1d
+    elif dataset_name == 'prior1d':
+        return load_prior1d
     else:
         raise AssertionError("\nDataset not available.")
