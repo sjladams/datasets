@@ -170,7 +170,7 @@ class UCIRegressionDataset(Dataset):  # \todo use TensorDataset?
 
     def _load_data(self, in_features: int, out_features: int, len_dataset: Optional[int] = None,
                    ratio_ood_samples: float = 0.5, uniform_ood_sampling: bool = False,
-                   uniform_ood_sapling_dim: int = 0, **kwargs):
+                   uniform_ood_sapling_dim: int = 0, random_seed: int = 0, **kwargs):
         folder_root = f"{os.path.dirname(__file__)}{os.sep}{self.dataset_name}"
         data_root = f"{folder_root}{os.sep}data.txt.gz"
         if os.path.exists(data_root):
@@ -180,21 +180,41 @@ class UCIRegressionDataset(Dataset):  # \todo use TensorDataset?
         else:
             raise NotImplementedError('data file not available')
 
+        # ## temp
+        # len_dataset_plot = 100
+        # len_dataset_train = 7406
+        # len_dataset_test = 128
+        # for random_seed in range(10):
+        #     indices_root_plot = f"{folder_root}{os.sep}{'train'}_indices_size={len_dataset_plot}_seed={random_seed}.txt.gz"
+        #     indices_root_train = f"{folder_root}{os.sep}{'train'}_indices_size={len_dataset_train}_seed={random_seed}.txt.gz"
+        #     indices_root_test = f"{folder_root}{os.sep}{'test'}_indices_size={len_dataset_test}_seed={random_seed}.txt.gz"
+        #     indices = np.arange(inputs.shape[0])
+        #     np.random.shuffle(indices)
+        #
+        #     indices_plot = indices[-len_dataset_plot:]
+        #     indices_train = indices[:len_dataset_train]
+        #     indices_test = indices[-len_dataset_test:]
+        #
+        #     np.savetxt(indices_root_plot, indices_plot)
+        #     np.savetxt(indices_root_train, indices_train)
+        #     np.savetxt(indices_root_test, indices_test)
+
         if len_dataset is None:
             len_dataset = inputs.shape[0]
         else:
             len_dataset = min(inputs.shape[0], len_dataset)
 
-        indices_root = f"{folder_root}{os.sep}{'train' if self.train else 'test'}_indices_size={len_dataset}.txt.gz"
-        if os.path.exists(indices_root):
-            indices = np.loadtxt(indices_root).astype(int)
-        else:
-            indices = np.arange(inputs.shape[0])
-            np.random.shuffle(indices)
-            indices = indices[:len_dataset]
-            np.savetxt(indices_root, indices)
+        if len_dataset == inputs.shape[0]:
+            indices_root = f"{folder_root}{os.sep}{'train' if self.train else 'test'}_indices_size={len_dataset}.txt.gz"
+            if os.path.exists(indices_root):
+                indices = np.loadtxt(indices_root).astype(int)
+            else:
+                indices = np.arange(inputs.shape[0])
+                np.random.shuffle(indices)
+                indices = indices[:len_dataset]
+                np.savetxt(indices_root, indices)
 
-        inputs, outputs = inputs[indices], outputs[indices]
+            inputs, outputs = inputs[indices], outputs[indices]
 
         if self.ood:
             if uniform_ood_sampling:
