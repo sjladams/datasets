@@ -205,7 +205,7 @@ class UCIRegressionDataset(Dataset):  # \todo use TensorDataset?
             len_dataset = min(inputs.shape[0], len_dataset)
 
         if len_dataset == inputs.shape[0]:
-            indices_root = f"{folder_root}{os.sep}{'train' if self.train else 'test'}_indices_size={len_dataset}.txt.gz"
+            indices_root = f"{folder_root}{os.sep}{'train' if self.train else 'test'}_indices_size={len_dataset}_seed={random_seed}.txt.gz"
             if os.path.exists(indices_root):
                 indices = np.loadtxt(indices_root).astype(int)
             else:
