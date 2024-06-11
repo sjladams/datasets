@@ -217,6 +217,7 @@ class UCIRegressionDataset(Dataset):  # \todo use TensorDataset?
             inputs, outputs = inputs[indices], outputs[indices]
 
         if self.ood:
+            num_ood_samples = int(inputs.shape[0] * ratio_ood_samples / (1 - ratio_ood_samples))
             if uniform_ood_sampling:
                 # set all dimensions other than uniform_ood_sapling_dim to means
                 domain_sampling_dim = [inputs[:, uniform_ood_sapling_dim].min(),
@@ -226,11 +227,13 @@ class UCIRegressionDataset(Dataset):  # \todo use TensorDataset?
                 inputs[:, uniform_ood_sapling_dim] = torch.linspace(*domain_sampling_dim, len_dataset)
                 outputs = torch.zeros(len_dataset, out_features).fill_(torch.nan)
             else:
-                num_ood_samples = int(inputs.shape[0] * ratio_ood_samples / (1 - ratio_ood_samples))
-                domain = [inputs.min(0).values, inputs.max(0).values]
+                ood_indices = torch.randint(0, len_dataset, (num_ood_samples,))
+                ood_inputs = inputs[ood_indices] + torch.randn((num_ood_samples, in_features)) * 0.05
+                ood_outputs = torch.ones((num_ood_samples, out_features)).fill_(torch.nan)
 
-                ood_inputs = domain[0] + (domain[1] - domain[0]) * torch.rand(num_ood_samples, in_features)
-                ood_outputs = torch.zeros(num_ood_samples, out_features).fill_(torch.nan)
+                # domain = [inputs.min(0).values, inputs.max(0).values]
+                # ood_inputs = domain[0] + (domain[1] - domain[0]) * torch.rand(num_ood_samples, in_features)
+                # ood_outputs = torch.zeros(num_ood_samples, out_features).fill_(torch.nan)
 
                 inputs = torch.cat((inputs, ood_inputs))
                 outputs = torch.cat((outputs, ood_outputs))
