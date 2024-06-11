@@ -315,71 +315,46 @@ class ClassificationDataset(Dataset):  # \todo use TensorDataset?
         return len(self.data)
 
 
+class RegressionDataset(Dataset):
+    def __init__(self, root: str, train: bool = True, paths: bool = False, ood: bool = False,
+                 input_transform: Optional[Callable] = None, output_transform: Optional[Callable] = None, **kwargs):
+        self.train = train
+        self.ood = ood
+        self.paths = paths
+        self.root = root
+        self.input_transform, self.output_transform = input_transform, output_transform
+        self.inputs, self.outputs = self._load_data(**kwargs)
 
-# \todo depreciate:
-def load_uci_dataset(dataset_name: str,  len_train_dataset: int, len_test_dataset: int, generate_ood: bool = False,
-                     plot_dim: int = 0, in_features: int = 1, out_features: int = 1, **kwargs):
-    folder_path = '{}/{}'.format(os.path.dirname(__file__), dataset_name)
-    data_file_path = '{}/data.txt.gz'.format(folder_path)
-    if os.path.exists(data_file_path):
-        data = np.loadtxt(data_file_path)
-    else:
-        raise NotImplementedError('data file not available')
+    def _load_data(self, len_dataset: Optional[int] = None, gap: Optional[list] = None,
+                   ood_domain_exp_factor: float = 0.25, **kwargs):
+        raise NotImplementedError
 
-    x = data[:, :-out_features]; y = data[:, -out_features:]
+    @property
+    def mean_inputs(self):
+        return self.inputs.mean(0)
 
-    train_indices_path = '{}/train_indices_size={}.txt.gz'.format(folder_path, len_train_dataset)
-    test_indices_path = '{}/test_indices_size={}.txt.gz'.format(folder_path, len_test_dataset)
-    if not os.path.exists(train_indices_path) and not os.path.exists(test_indices_path):
-        indices = np.arange(x.shape[0])
-        np.random.shuffle(indices)
-        indices_train = indices[:len_train_dataset]
-        indices_test = indices[-len_test_dataset:]
-        np.savetxt(train_indices_path, indices_train)
-        np.savetxt(test_indices_path, indices_test)
-    else:
-        indices_train = np.loadtxt(train_indices_path).astype(int)
-        indices_test = np.loadtxt(test_indices_path).astype(int)
+    @property
+    def std_inputs(self):
+        return self.inputs.std(0)
 
-    x_train, y_train = x[indices_train], y[indices_train]
-    x_test, y_test = x[indices_test], y[indices_test]
+    @property
+    def mean_outputs(self):
+        return self.outputs.mean(0)
 
-    nr_plot_points = 10
-    x_plot = np.zeros((nr_plot_points, in_features))
-    x_plot[:, plot_dim] = np.linspace(x_train[:, plot_dim].min(), x_train[:, plot_dim].max(), nr_plot_points)
-    y_plot = np.zeros((nr_plot_points, out_features))
+    @property
+    def std_outputs(self):
+        return self.outputs.std(0)
 
-    pre_processer_x = StandardScaler()
-    pre_processer_x.fit(x_train)
+    def __len__(self):
+        return self.inputs.shape[0]
 
-    pre_processer_y = StandardScaler()
-    pre_processer_y.fit(y_train)
+    def __getitem__(self, index: int) -> Tuple[Any, Any]:
+        input, output = self.inputs[index], self.outputs[index]
 
-    if generate_ood:
-        # use x% datapoints using uniformly sampled point from the input domain # \todo specify desired set size
-        ratio_ood_samples = 0.5
-        nr_ood_train_samples = int(x_train.shape[0] * ratio_ood_samples / (1-ratio_ood_samples))
-        nr_ood_test_samples = int(x_test.shape[0] * ratio_ood_samples / (1-ratio_ood_samples))
-        l_domain, u_domain = x.min(0), x.max(0)
+        if self.input_transform is not None:
+            input = self.input_transform(input)
 
-        x_train_ood = np.random.uniform(l_domain, u_domain, size=(nr_ood_train_samples, in_features))
-        y_train_ood = np.full((nr_ood_train_samples, 1), np.nan)
-        x_train = np.concatenate((x_train, x_train_ood))
-        y_train = np.concatenate((y_train, y_train_ood))
+        if self.output_transform is not None:
+            output = self.output_transform(output)
 
-        x_test_ood = np.random.uniform(l_domain, u_domain, size=(nr_ood_test_samples, in_features))
-        y_test_ood = np.full((nr_ood_test_samples, 1), np.nan)
-        x_test = np.concatenate((x_test, x_test_ood))
-        y_test = np.concatenate((y_test, y_test_ood))
-
-    scale = True
-    x_train, y_train = post_process_data(pre_processer_x, pre_processer_y, x_train, y_train, scale=scale, **kwargs)
-    x_test, y_test = post_process_data(pre_processer_x, pre_processer_y, x_test, y_test, scale=scale, **kwargs)
-    x_plot, y_plot = post_process_data(pre_processer_x, pre_processer_y, x_plot, y_plot, scale=scale, **kwargs)
-
-    input_size = x_train.shape[-1]
-    output_size = y_train.shape[-1]
-    return x_train, y_train, x_test, y_test, x_plot, y_plot, input_size, output_size
-
-
-
+        return input, output

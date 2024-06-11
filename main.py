@@ -92,7 +92,6 @@ def _get_dataset_loader(dataset_name: str):
     elif dataset_name == 'example1d':
         return load_example1d
     elif dataset_name == 'uva_tutorial':
-        raise NotImplementedError
         return load_uva_tutorial
     elif dataset_name == 'synthetic1d':
         raise NotImplementedError

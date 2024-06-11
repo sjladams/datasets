@@ -1,4 +1,4 @@
-from .utils import load_uci_dataset
+
 
 
 def load_protein(**kwargs):
