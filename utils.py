@@ -199,12 +199,28 @@ class UCIRegressionDataset(Dataset):  # \todo use TensorDataset?
         #     np.savetxt(indices_root_train, indices_train)
         #     np.savetxt(indices_root_test, indices_test)
 
+        # ## temp
+        # len_dataset_train = 448
+        # len_dataset_test = 58
+        # len_dataset_plot = 100
+        # for random_seed in range(10):
+        #     indices_root_train = f"{folder_root}{os.sep}train_indices_size={len_dataset_train}_seed={random_seed}.txt.gz"
+        #     indices_root_test = f"{folder_root}{os.sep}test_indices_size={len_dataset_test}_seed={random_seed}.txt.gz"
+        #     indices_root_plot = f"{folder_root}{os.sep}train_indices_size={len_dataset_plot}_seed={random_seed}.txt.gz"
+        #     if os.path.exists(indices_root_train):
+        #         indices_train = np.loadtxt(indices_root_train).astype(int)
+        #     if os.path.exists(indices_root_test):
+        #         indices_test = np.loadtxt(indices_root_test).astype(int)
+        #
+        #     indices_plot = np.concatenate((indices_test, indices_train))[:len_dataset_plot]
+        #     np.savetxt(indices_root_plot, indices_plot)
+
         if len_dataset is None:
             len_dataset = inputs.shape[0]
         else:
             len_dataset = min(inputs.shape[0], len_dataset)
 
-        if len_dataset == inputs.shape[0]:
+        if len_dataset != inputs.shape[0]:
             indices_root = f"{folder_root}{os.sep}{'train' if self.train else 'test'}_indices_size={len_dataset}_seed={random_seed}.txt.gz"
             if os.path.exists(indices_root):
                 indices = np.loadtxt(indices_root).astype(int)
