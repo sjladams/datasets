@@ -56,5 +56,5 @@ def load_torchvision(
         data=ds.data[:len_dataset],
         targets=ds.targets[:len_dataset],
         train=train,
-        transform=transformer, image_mode="L"
+        transform=transformer, image_mode=mapper[dataset_name]['image_mode']
     )
