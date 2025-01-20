@@ -1,7 +1,6 @@
 from torch.utils.data import Dataset
 
 # from src.datasets.loaders.regr1d import load_regr1d
-from datasets.loaders import load_custom_regression, load_torchvision, load_uci, load_other_regression
 
 # from src.datasets.loaders.example1d import load_example1d
 # from src.datasets.loaders.uva_tutorial import load_uva_tutorial
@@ -23,6 +22,8 @@ name_mapping = {
     'uva_tutorial': load_custom_regression,
     'gp_samples': load_other_regression,
     'snelson': load_other_regression,
+    'path_mnist': load_medmnist,
+    'oct_mnist': load_medmnist,
 }
 
 

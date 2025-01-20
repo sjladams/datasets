@@ -23,7 +23,8 @@ setuptools.setup(
     install_requires=[
         'torch>=2.5',
         'torchvision>=0.20',
-        'uci_datasets @ git+https://github.com/treforevans/uci_datasets.git'
+        'uci_datasets @ git+https://github.com/treforevans/uci_datasets.git',
+        'medmnist'
     ],
     package_data={
         'datasets': ['data/**'],
