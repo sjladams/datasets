@@ -13,7 +13,9 @@ import platform
 
 
 def get_local_data_root(dataset_name: str):
-    return f"{os.getcwd()}{os.sep}data{os.sep}{dataset_name}"
+    file_path = f"{os.getcwd()}{os.sep}data{os.sep}{dataset_name}"
+    ensure_dir(file_path)
+    return file_path
 
 
 def get_package_data_root(dataset_name: str):
