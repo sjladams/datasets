@@ -1,7 +1,5 @@
 import torch
-import numpy as np
-import os
-from typing import Tuple, Optional, Callable, Any, Union
+from typing import Tuple, Optional, Any, Union
 
 
 class Dataset(torch.utils.data.Dataset):
