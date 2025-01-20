@@ -22,7 +22,8 @@ setuptools.setup(
     python_requires=">=3.9.10",
     install_requires=[
         'torch>=2.5',
-        'torchvision>=0.20'
+        'torchvision>=0.20',
+        'uci_datasets @ git+https://github.com/treforevans/uci_datasets.git'
     ],
     package_data={
         'datasets': ['data/**'],
