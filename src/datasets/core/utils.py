@@ -1,17 +1,15 @@
-import torch
-# from sklearn.preprocessing import StandardScaler
 import os
 import gzip
-import pickle
 from typing import Tuple, Optional, Callable, Any, Union
-import numpy as np
-from torch.utils.data import Dataset
-from PIL import Image
-from torchvision import transforms
 from pathlib import Path
 import platform
+import pickle
+
+import torch
+import numpy as np
 
 
+## Filing utilities
 def get_local_data_root(dataset_name: str):
     file_path = f"{os.getcwd()}{os.sep}data{os.sep}{dataset_name}"
     ensure_dir(file_path)
@@ -42,6 +40,31 @@ def ensure_dir(dirname: str):
             path.mkdir(parents=True, exist_ok=False)
 
 
+def save_txt_gz(file_path: str, data: torch.Tensor):
+    ensure_dir(os.path.dirname(file_path))
+    with gzip.open(file_path, "wt") as f:
+        np.savetxt(f, data.numpy())
+
+
+def pickle_dump(obj, tag):
+    pickle_out = open("{}.pickle".format(tag), "wb")
+    pickle.dump(obj, pickle_out)
+    pickle_out.close()
+
+
+def pickle_load(tag):
+    if not (".npy" in tag or ".pickle" in tag or ".pkl" in tag):
+        tag = f"{tag}.pickle"
+    pickle_in = open(tag, "rb")
+    if "npy" in tag:
+        to_return = np.load(pickle_in)
+    else:
+        to_return = pickle.load(pickle_in)
+    pickle_in.close()
+    return to_return
+
+
+## Data generation and manipulation utilities
 def generate_train_test_set_indices(dataset_name: str, train: bool, len_dataset: int, len_original_dataset: int):
     """
     Generates the indices of the train or test set of a dataset
@@ -57,14 +80,38 @@ def generate_train_test_set_indices(dataset_name: str, train: bool, len_dataset:
     return indices
 
 
-def save_txt_gz(file_path: str, data: torch.Tensor):
-    ensure_dir(os.path.dirname(file_path))
-    with gzip.open(file_path, "wt") as f:
-        np.savetxt(f, data.numpy())
+def balance_classification_data(data: torch.Tensor, labels: torch.Tensor, shuffle: bool = True):
+    """
+    Balance the dataset such that the number of samples in each class is equal.
+    """
+    assert labels.ndim == 1, "supports only 1D batches"
+
+    class_counts = torch.bincount(labels)
+    min_class_count = class_counts.min().item()
+
+    idxs = list()
+    for label in labels.unique():
+        label_idx = torch.where(labels == label)[0]
+        if shuffle:
+            label_idx = label_idx[torch.randperm(len(label_idx))]
+        idxs.append(label_idx[:min_class_count])
+
+    idxs = torch.cat(idxs)
+    return data[idxs], labels[idxs]
+
+
+def rand(size, l, u):
+    return (u - l) * torch.rand(size) + l
+
+
+def to_categorical(y, num_classes):
+    """ 1-hot encodes a tensor """
+    # return torch.eye(num_classes, dtype=torch.uint8)[y]
+    return torch.eye(num_classes)[y]
 
 
 def points_to_paths(x: torch.Tensor, path_length: int, path_step: float = None, y: torch.Tensor = None,
-                    sample_path: bool = False, wiener_window: bool = False, fixed_window: bool = True, 
+                    sample_path: bool = False, wiener_window: bool = False, fixed_window: bool = True,
                     num_input_dims: int = 1, **kwargs) -> Tuple[torch.Tensor, torch.Tensor]:
     """
     wiener process: w_k = w_k-1 + dw, dw  sim N(0, 1)
@@ -121,77 +168,3 @@ def points_to_paths(x: torch.Tensor, path_length: int, path_step: float = None, 
         raise NotImplementedError
 
     return x_paths, y_paths
-
-
-def pickle_dump(obj, tag):
-    pickle_out = open("{}.pickle".format(tag), "wb")
-    pickle.dump(obj, pickle_out)
-    pickle_out.close()
-
-
-def pickle_load(tag):
-    if not ".npy" in tag or ".pickle" in tag:
-        tag = f"{tag}.pickle"
-    pickle_in = open(tag, "rb")
-    if "npy" in tag:
-        to_return = np.load(pickle_in)
-    else:
-        to_return = pickle.load(pickle_in)
-    pickle_in.close()
-    return to_return
-
-
-def noise(size: tuple, sigma):
-    return torch.randn(size) * sigma
-
-
-def rand(size, l, u):
-    return (u - l) * torch.rand(size) + l
-
-
-def xdata(dataset_size: int, l: float, u: float, generate_paths: bool, generate_random: bool = True, **kwargs):
-    if generate_random:
-        x = (l - u) * torch.rand(dataset_size, 1) + u
-    else:
-        x = torch.linspace(l, u, int(dataset_size)).view(-1, 1)
-
-    if generate_paths:
-        return points_to_paths(x=x, **kwargs)
-    else:
-        return x
-
-
-def to_categorical(y, num_classes):
-    """ 1-hot encodes a tensor """
-    # return torch.eye(num_classes, dtype=torch.uint8)[y]
-    return torch.eye(num_classes)[y]
-
-
-def dataset_points_to_paths(x: torch.Tensor, y: torch.Tensor, path_length: int, sample_path: bool, **kwargs) -> \
-        (torch.tensor, torch.tensor): # \todo to be removed
-    """
-    :param x: Size(batch_size, in_features)
-    :param y: Size(batch_size, out_features)
-    :param path_length
-    :param sample_path
-    """
-    x_paths = points_to_paths(x, path_length=path_length, sample_path=sample_path, **kwargs)
-    y_paths = torch.empty(x_paths.shape[:-1] + (y.shape[-1],)).fill_(torch.nan)
-    return x_paths, y_paths
-
-
-# def scale_data(scalar, data: np.array, scale: bool = True) -> torch.tensor:
-#     if scale:
-#         return torch.from_numpy(scalar.transform(data)).type(torch.float32)
-#     else:
-#         return torch.from_numpy(data).type(torch.float32)
-#
-#
-# def post_process_data(pre_processer_x: StandardScaler, pre_processer_y: StandardScaler, x: np.array, y: np.array,
-#                       scale: bool = True, generate_paths: bool = False, **kwargs):
-#     x = scale_data(pre_processer_x, x, scale=scale)
-#     y = scale_data(pre_processer_y, y, scale=scale)
-#     if generate_paths:
-#         x, y = dataset_points_to_paths(x, y, **kwargs)
-#     return x, y
-
