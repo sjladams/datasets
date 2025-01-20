@@ -1,6 +1,6 @@
 from torch.utils.data import Dataset
 
-from datasets.loaders import load_custom_regression, load_torchvision, load_uci, load_other_regression, load_medmnist
+from datasets.loaders import load_custom_regression, load_torchvision, load_uci, load_other_regression, load_medmnist, load_custom_classification
 
 name_mapping = {
     'mnist': load_torchvision,
@@ -19,6 +19,10 @@ name_mapping = {
     'snelson': load_other_regression,
     'path_mnist': load_medmnist,
     'oct_mnist': load_medmnist,
+    "half_moons": load_custom_classification,
+    "vertical_split": load_custom_classification,
+    "diagonal_split": load_custom_classification,
+    "ellipsoid_split": load_custom_classification
 }
 
 
