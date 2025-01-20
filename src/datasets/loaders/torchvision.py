@@ -1,7 +1,8 @@
 from torchvision import datasets
 from typing import Optional
+import torch
 
-from datasets.core.transformers import FlattenTransform
+from datasets.core.transformers import FlattenTransform, NormalizeTransform, Compose, FloatTransform, EnsureChannelTransform
 from datasets.core.templates import ClassificationDataset
 from datasets.core.utils import get_local_data_root
 
@@ -44,8 +45,14 @@ def load_torchvision(
     else:
         ds = mapper[dataset_name]['dataset'](get_local_data_root(dataset_name), train=train, download=True)
 
+    transformer = [
+        EnsureChannelTransform(ds[0][0].size),
+        FloatTransform(),
+        NormalizeTransform(mean=0., std=torch.iinfo(ds.data.dtype).max)
+    ]
+
     if flatten:
-        transformer = FlattenTransform(mapper[dataset_name]['image_mode'])
+        transformer += [FlattenTransform(mapper[dataset_name]['image_mode'])]
     else:
         transformer = None
 
@@ -56,5 +63,6 @@ def load_torchvision(
         data=ds.data[:len_dataset],
         targets=ds.targets[:len_dataset],
         train=train,
-        transform=transformer, image_mode=mapper[dataset_name]['image_mode']
+        transform=Compose(transformer),
+        image_mode=mapper[dataset_name]['image_mode']
     )

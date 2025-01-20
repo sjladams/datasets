@@ -1,5 +1,7 @@
+from typing import Optional, Union
 import torch
-from torchvision.transforms import Normalize
+from torchvision.transforms import Normalize, Compose, ToTensor
+
 
 class FlattenTransform(torch.nn.modules.Flatten):
     def __init__(self, image_mode: str):
@@ -9,20 +11,20 @@ class FlattenTransform(torch.nn.modules.Flatten):
         Args:
             image_mode (str): The mode of the PIL image (e.g., 'L', 'RGB').
         """
-        # Map modes to their respective start_dim
+        # Map modes to their respective start_dim (Because of usage of EnsureChannelTransform, this map is redundant!)
         mode_to_start_dim = {
-            "L": -2,         # Grayscale: (C, H, W) -> Flatten H and W
-            "1": -2,         # Binary: (C, H, W) -> Flatten H and W
+            "L": -3,         # Grayscale: (1, H, W) -> Flatten H and W
+            # "1": -2,         # Binary: (1, H, W) -> Flatten H and W
             "RGB": -3,       # True color: (C, H, W) -> Flatten C, H, W
-            "RGBA": -3,      # True color with alpha: (C, H, W) -> Flatten C, H, W
-            "CMYK": -3,      # Printing colors: (C, H, W) -> Flatten C, H, W
-            "P": -2,         # Palette-based: (C, H, W) -> Flatten H and W
-            "I": -2,         # 32-bit integer: (C, H, W) -> Flatten H and W
-            "F": -2,         # Floating-point: (C, H, W) -> Flatten H and W
-            "YCbCr": -3,     # Luminance/chrominance: (C, H, W) -> Flatten C, H, W
-            "LAB": -3,       # LAB color space: (C, H, W) -> Flatten C, H, W
-            "HSV": -3,       # Hue/Saturation/Value: (C, H, W) -> Flatten C, H, W
-            "RGBX": -3       # True color with padding: (C, H, W) -> Flatten C, H, W
+            # "RGBA": -3,      # True color with alpha: (C, H, W) -> Flatten C, H, W
+            # "CMYK": -3,      # Printing colors: (C, H, W) -> Flatten C, H, W
+            # "P": -2,         # Palette-based: (H, W) -> Flatten H and W
+            # "I": -2,         # 32-bit integer: (H, W) -> Flatten H and W
+            # "F": -2,         # Floating-point: (H, W) -> Flatten H and W
+            # "YCbCr": -3,     # Luminance/chrominance: (C, H, W) -> Flatten C, H, W
+            # "LAB": -3,       # LAB color space: (C, H, W) -> Flatten C, H, W
+            # "HSV": -3,       # Hue/Saturation/Value: (C, H, W) -> Flatten C, H, W
+            # "RGBX": -3       # True color with padding: (C, H, W) -> Flatten C, H, W
         }
 
         if image_mode not in mode_to_start_dim:
@@ -38,6 +40,32 @@ class NormalizeTransform(Normalize):
     """
     def __init__(self, mean, std):
         super().__init__(mean, std)
+
+
+class FloatTransform(torch.nn.Module):
+    def __init__(self):
+        super().__init__()
+
+    def forward(self, data: torch.Tensor):
+        return data.float()
+
+
+class EnsureChannelTransform(torch.nn.Module):
+    def __init__(self, size: Union[tuple, torch.Size]):
+        if len(size) == 2:
+            self.init_channel = True
+        elif len(size) == 3:
+            self.init_channel = False
+        else:
+            raise ValueError
+
+        super().__init__()
+
+    def forward(self, data: torch.Tensor):
+        if self.init_channel:
+            return data.unsqueeze(-3)
+        else:
+            return data
 
 
 class MoveChannelTransform:
