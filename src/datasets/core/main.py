@@ -1,11 +1,6 @@
 from torch.utils.data import Dataset
 
-# from src.datasets.loaders.regr1d import load_regr1d
-
-# from src.datasets.loaders.example1d import load_example1d
-# from src.datasets.loaders.uva_tutorial import load_uva_tutorial
-# from src.datasets.loaders.prior1d import load_prior1d
-
+from datasets.loaders import load_custom_regression, load_torchvision, load_uci, load_other_regression, load_medmnist
 
 name_mapping = {
     'mnist': load_torchvision,
