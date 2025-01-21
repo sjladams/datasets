@@ -6,7 +6,6 @@ from datasets.core.templates import RegressionDataset
 from datasets.core.utils import get_package_data_root, open_txt_gz, save_txt_gz, get_local_data_root, generate_train_test_set_indices #\todo import utils as utils
 import datasets.core.transformers as tf
 
-import uci_datasets  # python -m pip install git+https://github.com/treforevans/uci_datasets.git
 
 def load_uci(
         dataset_name: str,
@@ -15,6 +14,8 @@ def load_uci(
         split: int = 0,
         ood: bool = False,
         **kwargs) -> RegressionDataset:
+
+    import uci_datasets  # python -m pip install git+https://github.com/treforevans/uci_datasets.git
 
     data = uci_datasets.Dataset(dataset_name)
     x_train, y_train, x_test, y_test = data.get_split(split=split)
