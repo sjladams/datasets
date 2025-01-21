@@ -96,7 +96,7 @@ def load_custom_classification(
     else:
         data, targets = data_generating_mapper[dataset_name](len_dataset=len_dataset, in_features=in_features)
         # ensure equal number of points per class:
-        data, targets = utils.balance_classification_dataset(data, targets)
+        data, targets = utils.balance_classification_data(data, targets)
 
         utils.save_txt_gz(data_path, data)
         utils.save_txt_gz(targets_path, targets)

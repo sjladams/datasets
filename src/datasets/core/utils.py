@@ -82,7 +82,7 @@ def generate_train_test_set_indices(dataset_name: str, train: bool, len_dataset:
 
 def balance_classification_data(data: torch.Tensor, labels: torch.Tensor, shuffle: bool = True):
     """
-    Balance the dataset such that the number of samples in each class is equal.
+    Balance the dataset such that the number of samples in each class is equal. (reshuffles data!)
     """
     assert labels.ndim == 1, "supports only 1D batches"
 
@@ -97,6 +97,8 @@ def balance_classification_data(data: torch.Tensor, labels: torch.Tensor, shuffl
         idxs.append(label_idx[:min_class_count])
 
     idxs = torch.cat(idxs)
+    if shuffle: # highly recommend to shuffle otherwise data is stacked per class
+        idxs = idxs[torch.randperm(len(idxs))]
     return data[idxs], labels[idxs]
 
 
