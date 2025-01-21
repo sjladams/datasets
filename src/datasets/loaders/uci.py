@@ -4,7 +4,7 @@ import torch
 
 from datasets.core.templates import RegressionDataset
 from datasets.core.utils import get_package_data_root, open_txt_gz, save_txt_gz, get_local_data_root, generate_train_test_set_indices #\todo import utils as utils
-from datasets.core.transformers import NormalizeTransform
+import datasets.core.transformers as tf
 
 import uci_datasets  # python -m pip install git+https://github.com/treforevans/uci_datasets.git
 
@@ -59,6 +59,6 @@ def load_uci(
         targets=y[:len_dataset],
         train=train,
         ood=ood,
-        transform=NormalizeTransform(mean=x.mean(0), std=x.std(0)),
-        target_transform=NormalizeTransform(mean=y.mean(0), std=y.std(0))
+        transform=tf.NormalizeNumerical(mean=x.mean(0), std=x.std(0)),
+        target_transform=tf.NormalizeNumerical(mean=y.mean(0), std=y.std(0))
     )
