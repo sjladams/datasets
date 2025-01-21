@@ -7,10 +7,12 @@ class Dataset(torch.utils.data.Dataset):
                  data: torch.Tensor,
                  targets: torch.Tensor,
                  train: bool = True,
+                 ood: bool = False,
                  transform: Optional[torch.nn.Module] = None,
                  target_transform: Optional[torch.nn.Module] = None):
         self.data, self.targets = data, targets
         self.train = train
+        self.ood = ood
         self.transform, self.target_transform = transform, target_transform
 
     def __getitem__(self, index: Union[int, list, torch.Tensor]) -> Tuple[Any, Any]:
@@ -31,12 +33,12 @@ class Dataset(torch.utils.data.Dataset):
         return len(self.data)
 
     @property
-    def input_size(self):
-        return self.__getitem__(0)[0].shape
+    def data_size(self):
+        return self.__getitem__(0)[0].size()
 
     @property
-    def output_size(self):
-        return self.__getitem__(0)[1].shape
+    def target_size(self):
+        return None
 
 
 class ClassificationDataset(Dataset):
@@ -44,9 +46,19 @@ class ClassificationDataset(Dataset):
         self.image_mode = image_mode
         super().__init__(**kwargs)
 
+        self._num_classes = len(torch.unique(self.targets))
+        assert self._num_classes == self.targets.max().item() + 1, 'Class indices must be contiguous'
+
+    @property
+    def target_size(self):
+        return self._num_classes
+
 
 class RegressionDataset(Dataset):
-    def __init__(self, ood: bool = False, **kwargs):
-        self.ood = ood
+    def __init__(self, **kwargs):
         super().__init__(**kwargs)
+
+    @property
+    def target_size(self):
+        return self.__getitem__(0)[1].size()
 
