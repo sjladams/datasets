@@ -92,7 +92,7 @@ def load_custom_classification(
         utils.save_txt_gz(targets_path, targets)
 
     if ood:
-        raise NotImplementedError
+        data, targets = data_generating_mapper[dataset_name](len_dataset=len_dataset, in_features=in_features)
 
     return ClassificationDataset(
         data=data,
