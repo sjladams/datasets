@@ -1,4 +1,3 @@
-import medmnist
 from typing import Optional
 import torch
 
@@ -6,20 +5,25 @@ import datasets.core.transformers as tf
 from datasets.core.templates import ClassificationDataset
 from datasets.core.utils import get_local_data_root
 
-mapper = {
-    "path_mnist":
-        {"image_mode": "RGB",
-         "dataset": medmnist.PathMNIST,
-         "train_len": 89996,
-         "test_len": 10004
-         },
-    "oct_mnist":
-        {"image_mode": "L",
-         "dataset": medmnist.OCTMNIST,
-         "train_len": 97477,
-         "test_len": 10832
-         },
-}
+
+def get_mapper():
+    import medmnist
+
+    return {
+        "path_mnist":
+            {"image_mode": "RGB",
+             "dataset": medmnist.PathMNIST,
+             "train_len": 89996,
+             "test_len": 10004
+             },
+        "oct_mnist":
+            {"image_mode": "L",
+             "dataset": medmnist.OCTMNIST,
+             "train_len": 97477,
+             "test_len": 10832
+             },
+    }
+
 
 def load_medmnist(
         dataset_name: str,
@@ -27,6 +31,8 @@ def load_medmnist(
         len_dataset: Optional[int] = None,
         flatten: bool = True,
         **kwargs) -> ClassificationDataset:
+
+    mapper = get_mapper()
 
     if dataset_name not in mapper:
         raise NotImplementedError(f"MedMNIST Dataset {dataset_name} not implemented.")
