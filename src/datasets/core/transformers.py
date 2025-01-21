@@ -1,9 +1,10 @@
 from typing import Optional, Union
 import torch
-from torchvision.transforms import Normalize, Compose, ToTensor
+import torchvision.transforms as transforms
+from torchvision.transforms import Compose, ToTensor
 
 
-class FlattenTransform(torch.nn.modules.Flatten):
+class Flatten(torch.nn.modules.Flatten):
     def __init__(self, image_mode: str):
         """
         Custom Flatten layer that adjusts start_dim based on the PIL image mode.
@@ -11,7 +12,7 @@ class FlattenTransform(torch.nn.modules.Flatten):
         Args:
             image_mode (str): The mode of the PIL image (e.g., 'L', 'RGB').
         """
-        # Map modes to their respective start_dim (Because of usage of EnsureChannelTransform, this map is redundant!)
+        # Map modes to their respective start_dim (Because of usage of EnsureChannel, this map is redundant!)
         mode_to_start_dim = {
             "L": -3,         # Grayscale: (1, H, W) -> Flatten H and W
             # "1": -2,         # Binary: (1, H, W) -> Flatten H and W
@@ -34,15 +35,28 @@ class FlattenTransform(torch.nn.modules.Flatten):
         super().__init__(start_dim=start_dim)
 
 
-class NormalizeTransform(Normalize):
+class NormalizeImage(transforms.Normalize):
     """
-    Apply z-score normalization on a given data.
+    Apply z-score normalization on a given image data.
     """
     def __init__(self, mean, std):
         super().__init__(mean, std)
 
 
-class FloatTransform(torch.nn.Module):
+class NormalizeNumerical(torch.nn.modules.Module):
+    """
+    Apply z-score normalization on a given image data.
+    """
+    def __init__(self, mean: Union[float, torch.Tensor] = 0., std: Union[float, torch.Tensor] = 1.):
+        super(NormalizeNumerical, self).__init__()
+        self.mean = torch.as_tensor(mean).type(torch.float32)
+        self.std = torch.as_tensor(std).type(torch.float32)
+
+    def forward(self, x: torch.Tensor):
+        return (x - self.mean) / self.std
+
+
+class Float(torch.nn.Module):
     def __init__(self):
         super().__init__()
 
@@ -50,7 +64,7 @@ class FloatTransform(torch.nn.Module):
         return data.float()
 
 
-class EnsureChannelTransform(torch.nn.Module):
+class EnsureChannel(torch.nn.Module):
     def __init__(self, size: Union[tuple, torch.Size]):
         if len(size) == 2:
             self.init_channel = True
@@ -68,7 +82,7 @@ class EnsureChannelTransform(torch.nn.Module):
             return data
 
 
-class MoveChannelTransform:
+class MoveChannel:
     def __init__(self, source: int = -1, destination: int = 0):
         self.source = source
         self.destination = destination

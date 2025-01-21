@@ -2,7 +2,7 @@ import medmnist
 from typing import Optional
 import torch
 
-from datasets.core.transformers import FlattenTransform, NormalizeTransform, Compose, FloatTransform, EnsureChannelTransform
+import datasets.core.transformers as tf
 from datasets.core.templates import ClassificationDataset
 from datasets.core.utils import get_local_data_root
 
@@ -38,13 +38,13 @@ def load_medmnist(
         )
 
     transformer = [
-        EnsureChannelTransform(ds[0][0].size),
-        FloatTransform(),
-        NormalizeTransform(mean=0., std=255) # Note that in the example of the original code, the data is normalized between [-0.5, 0.5]
+        tf.EnsureChannel(ds[0][0].size),
+        tf.Float(),
+        tf.NormalizeImage(mean=0., std=255) # Note that in the example of the original code, the data is normalized between [-0.5, 0.5]
     ]
 
     if flatten:
-        transformer += [FlattenTransform(mapper[dataset_name]['image_mode'])]
+        transformer += [tf.Flatten(mapper[dataset_name]['image_mode'])]
     else:
         transformer = None
 
@@ -55,6 +55,6 @@ def load_medmnist(
         data=torch.from_numpy(ds.imgs[:len_dataset]).type(torch.uint8),
         targets=torch.from_numpy(ds.labels[:len_dataset]).view(-1).type(torch.int64),
         train=train,
-        transform=Compose(transformer),
+        transform=tf.Compose(transformer),
         image_mode=mapper[dataset_name]['image_mode']
     )

@@ -3,7 +3,7 @@ from typing import Optional
 import torch
 from sklearn.datasets import make_moons
 
-from datasets.core.transformers import FlattenTransform, NormalizeTransform, Compose, FloatTransform, EnsureChannelTransform
+import datasets.core.transformers as tf
 from datasets.core.templates import ClassificationDataset
 import datasets.core.utils as utils
 
@@ -99,5 +99,5 @@ def load_custom_classification(
         targets=targets,
         train=train,
         image_mode=f"POINTS_{in_features}d",
-        transform=NormalizeTransform(mean=data.mean(0), std=data.std(0)),
+        transform=tf.NormalizeNumerical(mean=data.mean(0), std=data.std(0)),
     )

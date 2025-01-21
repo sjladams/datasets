@@ -5,7 +5,7 @@ import numpy as np
 
 import datasets.core.utils as utils
 from datasets.core.templates import RegressionDataset
-from datasets.core.transformers import NormalizeTransform
+import datasets.core.transformers as tf
 
 
 def gp_sample(x: torch.Tensor, ampl: float=1., leng: float=1., sn2: float=0.1):
@@ -102,8 +102,8 @@ def load_snelson(
         targets=y,
         train=train,
         ood=ood,
-        transform=NormalizeTransform(mean=x.mean(0), std=x.std(0)),
-        target_transform=NormalizeTransform(mean=y.mean(0), std=y.std(0))
+        transform=tf.NormalizeNumerical(mean=x.mean(0), std=x.std(0)),
+        target_transform=tf.NormalizeNumerical(mean=y.mean(0), std=y.std(0))
     )
 
 mapper = {
