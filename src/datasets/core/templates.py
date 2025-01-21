@@ -51,7 +51,7 @@ class ClassificationDataset(Dataset):
 
     @property
     def target_size(self):
-        return self._num_classes
+        return torch.Size((self._num_classes,))
 
 
 class RegressionDataset(Dataset):
