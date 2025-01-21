@@ -1,5 +1,6 @@
-from torch.utils.data import Dataset
+from typing import Union
 
+from datasets.core.templates import ClassificationDataset, RegressionDataset
 from datasets.loaders import load_custom_regression, load_torchvision, load_uci, load_other_regression, load_medmnist, load_custom_classification
 
 name_mapping = {
@@ -26,7 +27,7 @@ name_mapping = {
 }
 
 
-def get_dataset(dataset_name: str, **kwargs) -> Dataset:
+def get_dataset(dataset_name: str, **kwargs) -> Union[RegressionDataset, ClassificationDataset]:
     data_loader = _get_dataset_loader(dataset_name)
     return data_loader(dataset_name=dataset_name, **kwargs)
 

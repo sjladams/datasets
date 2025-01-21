@@ -56,17 +56,7 @@ def ellipsoid_split(len_dataset: int, in_features: int=2, epsilon_x: float = 1.0
     data = torch.rand(len_dataset, 2) * 2 - 1
 
     # Assign class 0 to points within the epsilon radius and class 1 to all other points
-    # targets = ((data[:, 0].abs() <= epsilon_x) & (data[:, 1].abs() <= epsilon_y)).long()
     targets = (data[:, 0].pow(2) * epsilon_x + data[:, 1].pow(2) * epsilon_y <= 0.8).long()
-
-    # # Ensure equal number of points per class
-    # class_0_indices = (targets == 0).nonzero(as_tuple=True)[0]
-    # class_1_indices = (targets == 1).nonzero(as_tuple=True)[0]
-    # min_class_size = min(len(class_0_indices), len(class_1_indices))
-
-    # selected_indices = torch.cat([class_0_indices[:min_class_size], class_1_indices[:min_class_size]])
-    # data = data[selected_indices]
-    # targets = targets[selected_indices]
 
     return data, targets
 
