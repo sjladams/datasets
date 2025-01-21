@@ -1,9 +1,7 @@
 from typing import Optional
-import os
 import torch
 
 from datasets.core.templates import RegressionDataset
-from datasets.core.utils import get_package_data_root, open_txt_gz, save_txt_gz, get_local_data_root, generate_train_test_set_indices #\todo import utils as utils
 import datasets.core.transformers as tf
 
 
