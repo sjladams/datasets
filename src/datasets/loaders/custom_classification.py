@@ -143,7 +143,7 @@ def load_custom_classification(
     targets_path = f"{basis_path}_targets.txt.gz"
     if os.path.exists(data_path) and os.path.exists(targets_path):
         data = utils.open_txt_gz(data_path, dtype=torch.float32)
-        targets = utils.open_txt_gz(data_path, dtype=torch.int64)
+        targets = utils.open_txt_gz(targets_path, dtype=torch.int64)
     else:
         # test set is 10% of the training set
         if not train:
