@@ -2,6 +2,7 @@ from typing import Union
 
 from datasets.core.templates import ClassificationDataset, RegressionDataset
 from datasets.loaders import load_custom_regression, load_torchvision, load_uci, load_other_regression, load_medmnist, load_custom_classification
+from .utils import get_local_data_root
 
 name_mapping = {
     'mnist': load_torchvision,
@@ -41,5 +42,6 @@ def _get_dataset_loader(dataset_nane: str):
 
 class Info:
     datasets = list(name_mapping.keys())
+    local_data_root = {dataset_name: get_local_data_root(dataset_name) for dataset_name in datasets}
 
 info = Info()
