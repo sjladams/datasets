@@ -31,18 +31,18 @@ def get_projection_matrix(n: int, m: int, randomly: bool = True):
     return T
 
 
-def project_data(dataset_name: str, data: torch.Tensor, num_features: int, basis_features: int, **kwargs):
-    proj_mat_path = f"{utils.get_local_data_root(dataset_name)}{os.sep}proj_mat_in={num_features}.txt.gz"
+def project_data(dataset_name: str, data: torch.Tensor, num_features: int, basis_features: int, randomly: bool):
+    proj_mat_path = f"{utils.get_local_data_root(dataset_name)}{os.sep}proj_mat_in={num_features}{'_rand' if randomly else ''}.txt.gz"
     if os.path.exists(proj_mat_path):
         proj_mat = utils.open_txt_gz(proj_mat_path, dtype=torch.float32)
     else:
-        proj_mat = get_projection_matrix(num_features, basis_features, **kwargs)
+        proj_mat = get_projection_matrix(num_features, basis_features, randomly)
         utils.save_txt_gz(proj_mat_path, proj_mat)
 
     return data @ proj_mat.t()
 
 
-def half_moons(len_dataset: int, num_features: int=2, noise=0.1):
+def half_moons(len_dataset: int, num_features: int=2, noise=0.1, randomly: bool=False, **kwargs):
     data, targets = make_moons(n_samples=len_dataset, noise=noise)
     data, targets = torch.as_tensor(data, dtype=torch.float32), torch.as_tensor(targets, dtype=torch.int64)
 
@@ -50,14 +50,14 @@ def half_moons(len_dataset: int, num_features: int=2, noise=0.1):
     if num_features == 2:
         pass
     elif num_features > 2:
-        data = project_data("half_moons", data, num_features, 2, randomly=False)
+        data = project_data("half_moons", data, num_features, 2, randomly)
     else:
         raise ValueError
 
     return data, targets
 
 
-def vertical_split(len_dataset: int, num_features: int=2):
+def vertical_split(len_dataset: int, num_features: int=2, randomly: bool=False, **kwargs):
     # Generate random points in the range [0, 1] for both dimensions
     data = torch.rand(len_dataset, 2)
 
@@ -75,14 +75,14 @@ def vertical_split(len_dataset: int, num_features: int=2):
     if num_features == 2:
         pass
     elif num_features > 2:
-        data = project_data("vertical_split", data, num_features, 2, randomly=False)
+        data = project_data("vertical_split", data, num_features, 2, randomly)
     else:
         raise ValueError
 
     return data, targets
 
 
-def diagonal_split(len_dataset: int, num_features: int=2):
+def diagonal_split(len_dataset: int, num_features: int=2, randomly: bool=False, **kwargs):
     # Generate random points in the range [-1, 1] for both dimensions
     data = torch.rand(len_dataset, 2) * 2 - 1
 
@@ -93,14 +93,14 @@ def diagonal_split(len_dataset: int, num_features: int=2):
     if num_features == 2:
         pass
     elif num_features > 2:
-        data = project_data("diagonal_split", data, num_features, 2, randomly=False)
+        data = project_data("diagonal_split", data, num_features, 2, randomly)
     elif num_features < 2:
         raise ValueError
 
     return data, targets
 
 
-def ellipsoid_split(len_dataset: int, num_features: int=2, epsilon_x: float = 1.0, epsilon_y: float = 4.0):
+def ellipsoid_split(len_dataset: int, num_features: int=2, epsilon_x: float = 1.0, epsilon_y: float = 4.0, randomly: bool=False, **kwargs):
     # Generate random points in the range [-1, 1] for both dimensions
     data = torch.rand(len_dataset, 2) * 2 - 1
 
@@ -111,7 +111,7 @@ def ellipsoid_split(len_dataset: int, num_features: int=2, epsilon_x: float = 1.
     if num_features == 2:
         pass
     elif num_features > 2:
-        data = project_data("ellipsoid_split", data, num_features, 2, randomly=False)
+        data = project_data("ellipsoid_split", data, num_features, 2, randomly)
     else:
         raise ValueError
 
