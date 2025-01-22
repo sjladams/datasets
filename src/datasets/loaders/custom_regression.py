@@ -87,6 +87,7 @@ def load_custom_regression(
     return RegressionDataset(
         data=x,
         targets=y,
+        name=dataset_name,
         train=train,
         ood=ood,
         transform=tf.NormalizeNumerical(mean=x.mean(0), std=x.std(0)),

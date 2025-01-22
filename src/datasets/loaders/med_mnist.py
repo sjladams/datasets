@@ -60,6 +60,7 @@ def load_medmnist(
     return ClassificationDataset(
         data=torch.from_numpy(ds.imgs[:len_dataset]).type(torch.uint8),
         targets=torch.from_numpy(ds.labels[:len_dataset]).view(-1).type(torch.int64),
+        name=dataset_name,
         train=train,
         transform=tf.Compose(transformer),
         image_mode=mapper[dataset_name]['image_mode']

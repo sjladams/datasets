@@ -62,6 +62,7 @@ def load_torchvision(
     return ClassificationDataset(
         data=ds.data[:len_dataset],
         targets=ds.targets[:len_dataset],
+        name=dataset_name,
         train=train,
         transform=tf.Compose(transformer),
         image_mode=mapper[dataset_name]['image_mode']

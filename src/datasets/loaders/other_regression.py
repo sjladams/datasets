@@ -64,6 +64,7 @@ def load_gp_samples(
     return RegressionDataset(
         data=x,
         targets=y,
+        name=dataset_name,
         train=train,
         ood=ood,
         transform=NormalizeTransform(mean=x.mean(0), std=x.std(0)),
@@ -107,6 +108,7 @@ def load_snelson(
     return RegressionDataset(
         data=x,
         targets=y,
+        name=dataset_name,
         train=train,
         ood=ood,
         transform=tf.NormalizeNumerical(mean=x.mean(0), std=x.std(0)),

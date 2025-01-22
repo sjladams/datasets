@@ -6,11 +6,13 @@ class Dataset(torch.utils.data.Dataset):
     def __init__(self,
                  data: torch.Tensor,
                  targets: torch.Tensor,
+                 name: str,
                  train: bool = True,
                  ood: bool = False,
                  transform: Optional[torch.nn.Module] = None,
                  target_transform: Optional[torch.nn.Module] = None):
         self.data, self.targets = data, targets
+        self.name = name
         self.train = train
         self.ood = ood
         self.transform, self.target_transform = transform, target_transform

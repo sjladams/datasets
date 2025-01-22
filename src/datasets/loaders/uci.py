@@ -56,6 +56,7 @@ def load_uci(
     return RegressionDataset(
         data=x[:len_dataset],
         targets=y[:len_dataset],
+        name=dataset_name,
         train=train,
         ood=ood,
         transform=tf.NormalizeNumerical(mean=x.mean(0), std=x.std(0)),

@@ -163,6 +163,7 @@ def load_custom_classification(
     return ClassificationDataset(
         data=data,
         targets=targets,
+        name=dataset_name,
         train=train,
         image_mode=f"POINTS_{num_features}d",
         transform=tf.NormalizeNumerical(mean=data.mean(0), std=data.std(0)),
