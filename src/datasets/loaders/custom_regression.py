@@ -62,6 +62,10 @@ def load_custom_regression(
         in_features: int = 1,
         out_features: int = 1,
         **kwargs):
+    """
+    Notes:
+    - len_dataset is the number of samples in the train dataset
+    """
 
     data_path = f"{utils.get_local_data_root(dataset_name)}{os.sep}{'train' if train else 'test'}_data_in={in_features}_out={out_features}_size={len_dataset}.txt.gz"
     if os.path.exists(data_path):
@@ -70,6 +74,10 @@ def load_custom_regression(
         x = data[... , range(in_features)]
         y = data[...,  range(-out_features, 0)]
     else:
+        # test set is 10% of the training set
+        if not train:
+            len_dataset = int(0.1 * len_dataset)
+
         x, y = data_generating_mapper[dataset_name](len_dataset, in_features, out_features)
         utils.save_txt_gz(data_path, torch.cat((x, y), dim=-1))
 

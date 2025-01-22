@@ -24,7 +24,9 @@ def load_gp_samples(
         gap: Optional[list] = None, # [-0.6, 0.1]
         **kwargs):
     """
-    gp_samples was previously named example1d, regr1d and synthetic1d
+    Notes:
+    - gp_samples was previously named example1d, regr1d and synthetic1d
+    - len_dataset is the number of samples in the train dataset
     """
     data_path = f"{utils.get_package_data_root(dataset_name)}{os.sep}{'train' if train else 'test'}_data.csv"
 
@@ -35,6 +37,11 @@ def load_gp_samples(
         y = data[..., 1].view(-1, 1)
     else:
         raise FileNotFoundError(f"Data file not found: {data_path}")
+
+        # test set is 10% of the training set
+        if not train:
+            len_dataset = int(0.1 * len_dataset)
+
         x = utils.rand((len_dataset, 1), l=-10., u=10.)
         y = gp_sample(x, ampl=1.6, leng=1.8)
 

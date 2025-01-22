@@ -76,6 +76,10 @@ def load_custom_classification(
         ood: bool = False,
         in_features: int = 2,
         **kwargs):
+    """
+    Notes:
+    - len_dataset is the number of samples in the train dataset
+    """
 
     basis_path = f"{utils.get_local_data_root(dataset_name)}{os.sep}{'train' if train else 'test'}_in={in_features}_size={len_dataset}"
     data_path = f"{basis_path}_data.txt.gz"
@@ -84,7 +88,12 @@ def load_custom_classification(
         data = utils.open_txt_gz(data_path, dtype=torch.float32)
         targets = utils.open_txt_gz(data_path, dtype=torch.int64)
     else:
+        # test set is 10% of the training set
+        if not train:
+            len_dataset = int(0.1 * len_dataset)
+
         data, targets = data_generating_mapper[dataset_name](len_dataset=len_dataset, in_features=in_features)
+
         # ensure equal number of points per class:
         data, targets = utils.balance_classification_data(data, targets)
 
