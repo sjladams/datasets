@@ -47,7 +47,9 @@ def half_moons(len_dataset: int, in_features: int=2, noise=0.1):
     data, targets = torch.as_tensor(data, dtype=torch.float32), torch.as_tensor(targets, dtype=torch.int64)
 
     # if in_features > 2, project the data into an in_features-dimensional space
-    if in_features > 2:
+    if in_features == 2:
+        pass
+    elif in_features > 2:
         data = project_data("half_moons", data, in_features, 2, randomly=False)
     else:
         raise ValueError
@@ -70,7 +72,9 @@ def vertical_split(len_dataset: int, in_features: int=2):
                          torch.ones(len_dataset // 2, dtype=torch.int64)])
 
     # if in_features > 2, project the data into an in_features-dimensional space
-    if in_features > 2:
+    if in_features == 2:
+        pass
+    elif in_features > 2:
         data = project_data("vertical_split", data, in_features, 2, randomly=False)
     else:
         raise ValueError
@@ -86,7 +90,9 @@ def diagonal_split(len_dataset: int, in_features: int=2):
     targets = (data[:, 1] > -data[:, 0]).long()
 
     # if in_features > 2, project the data into an in_features-dimensional space
-    if in_features > 2:
+    if in_features == 2:
+        pass
+    elif in_features > 2:
         data = project_data("diagonal_split", data, in_features, 2, randomly=False)
     elif in_features < 2:
         raise ValueError
@@ -102,7 +108,9 @@ def ellipsoid_split(len_dataset: int, in_features: int=2, epsilon_x: float = 1.0
     targets = (data[:, 0].pow(2) * epsilon_x + data[:, 1].pow(2) * epsilon_y <= 0.8).long()
 
     # if in_features > 2, project the data into an in_features-dimensional space
-    if in_features > 2:
+    if in_features == 2:
+        pass
+    elif in_features > 2:
         data = project_data("ellipsoid_split", data, in_features, 2, randomly=False)
     else:
         raise ValueError
