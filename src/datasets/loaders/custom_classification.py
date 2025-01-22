@@ -31,33 +31,33 @@ def get_projection_matrix(n: int, m: int, randomly: bool = True):
     return T
 
 
-def project_data(dataset_name: str, data: torch.Tensor, in_features: int, basis_features: int, **kwargs):
-    proj_mat_path = f"{utils.get_local_data_root(dataset_name)}{os.sep}proj_mat_in={in_features}.txt.gz"
+def project_data(dataset_name: str, data: torch.Tensor, num_features: int, basis_features: int, **kwargs):
+    proj_mat_path = f"{utils.get_local_data_root(dataset_name)}{os.sep}proj_mat_in={num_features}.txt.gz"
     if os.path.exists(proj_mat_path):
         proj_mat = utils.open_txt_gz(proj_mat_path, dtype=torch.float32)
     else:
-        proj_mat = get_projection_matrix(in_features, basis_features, **kwargs)
+        proj_mat = get_projection_matrix(num_features, basis_features, **kwargs)
         utils.save_txt_gz(proj_mat_path, proj_mat)
 
     return data @ proj_mat.t()
 
 
-def half_moons(len_dataset: int, in_features: int=2, noise=0.1):
+def half_moons(len_dataset: int, num_features: int=2, noise=0.1):
     data, targets = make_moons(n_samples=len_dataset, noise=noise)
     data, targets = torch.as_tensor(data, dtype=torch.float32), torch.as_tensor(targets, dtype=torch.int64)
 
-    # if in_features > 2, project the data into an in_features-dimensional space
-    if in_features == 2:
+    # if num_features > 2, project the data into an num_features-dimensional space
+    if num_features == 2:
         pass
-    elif in_features > 2:
-        data = project_data("half_moons", data, in_features, 2, randomly=False)
+    elif num_features > 2:
+        data = project_data("half_moons", data, num_features, 2, randomly=False)
     else:
         raise ValueError
 
     return data, targets
 
 
-def vertical_split(len_dataset: int, in_features: int=2):
+def vertical_split(len_dataset: int, num_features: int=2):
     # Generate random points in the range [0, 1] for both dimensions
     data = torch.rand(len_dataset, 2)
 
@@ -71,47 +71,47 @@ def vertical_split(len_dataset: int, in_features: int=2):
     targets = torch.cat([torch.zeros(len_dataset // 2, dtype=torch.int64),
                          torch.ones(len_dataset // 2, dtype=torch.int64)])
 
-    # if in_features > 2, project the data into an in_features-dimensional space
-    if in_features == 2:
+    # if num_features > 2, project the data into a num_features-dimensional space
+    if num_features == 2:
         pass
-    elif in_features > 2:
-        data = project_data("vertical_split", data, in_features, 2, randomly=False)
+    elif num_features > 2:
+        data = project_data("vertical_split", data, num_features, 2, randomly=False)
     else:
         raise ValueError
 
     return data, targets
 
 
-def diagonal_split(len_dataset: int, in_features: int=2):
+def diagonal_split(len_dataset: int, num_features: int=2):
     # Generate random points in the range [-1, 1] for both dimensions
     data = torch.rand(len_dataset, 2) * 2 - 1
 
     # Assign class 0 to points below the diagonal y = x and class 1 to points above the diagonal
     targets = (data[:, 1] > -data[:, 0]).long()
 
-    # if in_features > 2, project the data into an in_features-dimensional space
-    if in_features == 2:
+    # if num_features > 2, project the data into an num_features-dimensional space
+    if num_features == 2:
         pass
-    elif in_features > 2:
-        data = project_data("diagonal_split", data, in_features, 2, randomly=False)
-    elif in_features < 2:
+    elif num_features > 2:
+        data = project_data("diagonal_split", data, num_features, 2, randomly=False)
+    elif num_features < 2:
         raise ValueError
 
     return data, targets
 
 
-def ellipsoid_split(len_dataset: int, in_features: int=2, epsilon_x: float = 1.0, epsilon_y: float = 4.0):
+def ellipsoid_split(len_dataset: int, num_features: int=2, epsilon_x: float = 1.0, epsilon_y: float = 4.0):
     # Generate random points in the range [-1, 1] for both dimensions
     data = torch.rand(len_dataset, 2) * 2 - 1
 
     # Assign class 0 to points within the epsilon radius and class 1 to all other points
     targets = (data[:, 0].pow(2) * epsilon_x + data[:, 1].pow(2) * epsilon_y <= 0.8).long()
 
-    # if in_features > 2, project the data into an in_features-dimensional space
-    if in_features == 2:
+    # if num_features > 2, project the data into an num_features-dimensional space
+    if num_features == 2:
         pass
-    elif in_features > 2:
-        data = project_data("ellipsoid_split", data, in_features, 2, randomly=False)
+    elif num_features > 2:
+        data = project_data("ellipsoid_split", data, num_features, 2, randomly=False)
     else:
         raise ValueError
 
@@ -131,14 +131,14 @@ def load_custom_classification(
         train: bool = True,
         len_dataset: Optional[int] = 2 ** 10,
         ood: bool = False,
-        in_features: int = 2,
+        num_features: int = 2,
         **kwargs):
     """
     Notes:
     - len_dataset is the number of samples in the train dataset
     """
 
-    basis_path = f"{utils.get_local_data_root(dataset_name)}{os.sep}{'train' if train else 'test'}_in={in_features}_size={len_dataset}"
+    basis_path = f"{utils.get_local_data_root(dataset_name)}{os.sep}{'train' if train else 'test'}_in={num_features}_size={len_dataset}"
     data_path = f"{basis_path}_data.txt.gz"
     targets_path = f"{basis_path}_targets.txt.gz"
     if os.path.exists(data_path) and os.path.exists(targets_path):
@@ -149,7 +149,7 @@ def load_custom_classification(
         if not train:
             len_dataset = int(0.1 * len_dataset)
 
-        data, targets = data_generating_mapper[dataset_name](len_dataset=len_dataset, in_features=in_features)
+        data, targets = data_generating_mapper[dataset_name](len_dataset=len_dataset, num_features=num_features)
 
         # ensure equal number of points per class:
         data, targets = utils.balance_classification_data(data, targets)
@@ -158,12 +158,12 @@ def load_custom_classification(
         utils.save_txt_gz(targets_path, targets)
 
     if ood:
-        data, targets = data_generating_mapper[dataset_name](len_dataset=len_dataset, in_features=in_features)
+        data, targets = data_generating_mapper[dataset_name](len_dataset=len_dataset, num_features=num_features)
 
     return ClassificationDataset(
         data=data,
         targets=targets,
         train=train,
-        image_mode=f"POINTS_{in_features}d",
+        image_mode=f"POINTS_{num_features}d",
         transform=tf.NormalizeNumerical(mean=data.mean(0), std=data.std(0)),
     )
