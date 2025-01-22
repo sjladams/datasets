@@ -52,6 +52,9 @@ class NormalizeNumerical(torch.nn.modules.Module):
         self.mean = torch.as_tensor(mean).type(torch.float32)
         self.std = torch.as_tensor(std).type(torch.float32)
 
+        # In case the data takes a fixed value in some dimension, set std to 1 to avoid division by zero
+        self.std[self.std == 0.] = 1.
+
     def forward(self, x: torch.Tensor):
         return (x - self.mean) / self.std
 
