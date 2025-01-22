@@ -10,7 +10,7 @@ import numpy as np
 
 
 ## Filing utilities
-def get_local_data_root(dataset_name: str):
+def get_local_data_root(dataset_name: str, ensure: bool = True):
     file_path = f"{os.getcwd()}{os.sep}data{os.sep}{dataset_name}"
     ensure_dir(file_path)
     return file_path
