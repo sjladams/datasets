@@ -42,6 +42,9 @@ def _get_dataset_loader(dataset_nane: str):
 
 class Info:
     datasets = list(name_mapping.keys())
-    local_data_root = {dataset_name: get_local_data_root(dataset_name, ensure=False) for dataset_name in datasets}
+
+    @staticmethod
+    def local_data_root(dataset_name: str):
+        return get_local_data_root(dataset_name, ensure=False)
 
 info = Info()
