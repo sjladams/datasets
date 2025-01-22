@@ -1,3 +1,3 @@
-from .main import get_dataset
+from .main import get_dataset, info
 
-__all__ = ['get_dataset']
+__all__ = ['get_dataset', 'info']

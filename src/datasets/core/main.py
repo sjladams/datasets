@@ -37,3 +37,9 @@ def _get_dataset_loader(dataset_nane: str):
         raise NotImplementedError(f"Dataset {dataset_nane} not implemented.")
     else:
         return name_mapping[dataset_nane]
+
+
+class Info:
+    datasets = list(name_mapping.keys())
+
+info = Info()
