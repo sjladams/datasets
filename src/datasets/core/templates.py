@@ -42,6 +42,18 @@ class Dataset(torch.utils.data.Dataset):
     def target_size(self):
         return None
 
+    def subset(self, size: int):
+        indices = torch.randperm(len(self.data_size))[:size]
+        return Dataset(
+            data=self.data[indices],
+            targets=self.targets[indices],
+            name=self.name,
+            train=self.train,
+            ood=self.ood,
+            transform=self.transform,
+            target_transform=self.target_transform
+        )
+
 
 class ClassificationDataset(Dataset):
     def __init__(self, image_mode: str, **kwargs):
