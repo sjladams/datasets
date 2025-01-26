@@ -42,8 +42,7 @@ class Dataset(torch.utils.data.Dataset):
     def target_size(self):
         return None
 
-    def subset(self, size: int):
-        indices = torch.randperm(len(self.data_size))[:size]
+    def subset(self, indices: torch.Tensor):
         return Dataset(
             data=self.data[indices],
             targets=self.targets[indices],
