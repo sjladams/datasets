@@ -53,8 +53,6 @@ def load_torchvision(
 
     if flatten:
         transformer += [tf.Flatten(mapper[dataset_name]['image_mode'])]
-    else:
-        transformer = None
 
     if len_dataset is None:
         len_dataset = len(ds)
