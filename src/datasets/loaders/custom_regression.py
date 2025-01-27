@@ -54,19 +54,13 @@ data_generating_mapper = {
 }
 
 
-def load_custom_regression(
+def _load_or_generate_data(
         dataset_name: str,
-        train: bool = True,
-        len_dataset: Optional[int] = 2**10,
-        ood: bool = False,
-        in_features: int = 1,
-        out_features: int = 1,
-        **kwargs):
-    """
-    Notes:
-    - len_dataset is the number of samples in the train dataset
-    """
-
+        train: bool,
+        len_dataset: Optional[int],
+        in_features: int,
+        out_features: int,
+):
     data_path = f"{utils.get_local_data_root(dataset_name)}{os.sep}{'train' if train else 'test'}_data_in={in_features}_out={out_features}_size={len_dataset}.txt.gz"
     if os.path.exists(data_path):
         data = utils.open_txt_gz(data_path, dtype=torch.float32)
@@ -80,9 +74,34 @@ def load_custom_regression(
 
         x, y = data_generating_mapper[dataset_name](len_dataset, in_features, out_features)
         utils.save_txt_gz(data_path, torch.cat((x, y), dim=-1))
+    return x, y
+
+
+def load_custom_regression(
+        dataset_name: str,
+        train: bool = True,
+        len_dataset: Optional[int] = 2**10,
+        ood: bool = False,
+        in_features: int = 1,
+        out_features: int = 1,
+        **kwargs):
+    """
+    Notes:
+    - len_dataset is the number of samples in the train dataset
+    """
+    x, y = _load_or_generate_data(dataset_name, train=train, len_dataset=len_dataset, in_features=in_features, out_features=out_features)
 
     if ood:
         raise NotImplementedError
+
+    # Use training data to normalize the data
+    if train or not ood:
+        transform = tf.NormalizeNumerical(mean=x.mean(0), std=x.std(0))
+        target_transform = tf.NormalizeNumerical(mean=y.mean(0), std=y.std(0))
+    else:
+        x_train, y_train = _load_or_generate_data(dataset_name, train=False, len_dataset=len_dataset, in_features=in_features, out_features=out_features)
+        transform = tf.NormalizeNumerical(mean=x_train.mean(0), std=x_train.std(0))
+        target_transform = tf.NormalizeNumerical(mean=y_train.mean(0), std=y_train.std(0))
 
     return RegressionDataset(
         data=x,
@@ -90,6 +109,6 @@ def load_custom_regression(
         name=dataset_name,
         train=train,
         ood=ood,
-        transform=tf.NormalizeNumerical(mean=x.mean(0), std=x.std(0)),
-        target_transform=tf.NormalizeNumerical(mean=y.mean(0), std=y.std(0))
+        transform=transform,
+        target_transform=target_transform
     )

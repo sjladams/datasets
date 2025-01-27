@@ -101,6 +101,10 @@ def load_snelson(
         # x_test = np.linspace(x.min() - ood_expansion, x.max() + ood_expansion, len_test_dataset)[..., None]
         # y_test = np.full((len_test_dataset, 1), np.nan)
 
+    # Use full dataset to normalize the data
+    transform = tf.NormalizeNumerical(mean=x.mean(0), std=x.std(0)),
+    target_transform = tf.NormalizeNumerical(mean=y.mean(0), std=y.std(0))
+
     if len_dataset < len(x):
         indices = utils.generate_train_test_set_indices(dataset_name, train, len_dataset, len(x))
         x, y = x[indices], y[indices]
@@ -111,8 +115,8 @@ def load_snelson(
         name=dataset_name,
         train=train,
         ood=ood,
-        transform=tf.NormalizeNumerical(mean=x.mean(0), std=x.std(0)),
-        target_transform=tf.NormalizeNumerical(mean=y.mean(0), std=y.std(0))
+        transform=transform,
+        target_transform=target_transform
     )
 
 mapper = {

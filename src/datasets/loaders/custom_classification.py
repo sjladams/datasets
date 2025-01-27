@@ -126,18 +126,11 @@ data_generating_mapper = {
 }
 
 
-def load_custom_classification(
+def _load_or_generate_data(
         dataset_name: str,
-        train: bool = True,
-        len_dataset: Optional[int] = 2 ** 10,
-        ood: bool = False,
-        num_features: int = 2,
-        **kwargs):
-    """
-    Notes:
-    - len_dataset is the number of samples in the train dataset
-    """
-
+        train: bool,
+        len_dataset: Optional[int],
+        num_features: int):
     basis_path = f"{utils.get_local_data_root(dataset_name)}{os.sep}{'train' if train else 'test'}_in={num_features}_size={len_dataset}"
     data_path = f"{basis_path}_data.txt.gz"
     targets_path = f"{basis_path}_targets.txt.gz"
@@ -156,9 +149,31 @@ def load_custom_classification(
 
         utils.save_txt_gz(data_path, data)
         utils.save_txt_gz(targets_path, targets)
+    return data, targets
+
+
+def load_custom_classification(
+        dataset_name: str,
+        train: bool = True,
+        len_dataset: Optional[int] = 2 ** 10,
+        ood: bool = False,
+        num_features: int = 2,
+        **kwargs):
+    """
+    Notes:
+    - len_dataset is the number of samples in the train dataset
+    """
+    data, targets = _load_or_generate_data(dataset_name, train=train, len_dataset=len_dataset, num_features=num_features)
 
     if ood:
         data, targets = data_generating_mapper[dataset_name](len_dataset=len_dataset, num_features=num_features)
+
+    # Use training data to normalize the data
+    if train and not ood:
+        transform = tf.NormalizeNumerical(mean=data.mean(0), std=data.std(0))
+    else:
+        train_data, _ = _load_or_generate_data(dataset_name, train=False, len_dataset=len_dataset, num_features=num_features)
+        transform = tf.NormalizeNumerical(mean=train_data.mean(0), std=train_data.std(0))
 
     return ClassificationDataset(
         data=data,
@@ -166,5 +181,5 @@ def load_custom_classification(
         name=dataset_name,
         train=train,
         image_mode=f"POINTS_{num_features}d",
-        transform=tf.NormalizeNumerical(mean=data.mean(0), std=data.std(0)),
+        transform=transform
     )

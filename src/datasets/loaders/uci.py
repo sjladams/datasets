@@ -18,10 +18,13 @@ def load_uci(
     data = uci_datasets.Dataset(dataset_name)
     x_train, y_train, x_test, y_test = data.get_split(split=split)
 
+    x_train, y_train = torch.from_numpy(x_train).type(torch.float32), torch.from_numpy(y_train).type(torch.float32)
+    x_test, y_test = torch.from_numpy(x_test).type(torch.float32), torch.from_numpy(y_test).type(torch.float32)
+
     if train:
-        x, y = torch.from_numpy(x_train).type(torch.float32), torch.from_numpy(y_train).type(torch.float32)
+        x, y = x_train, y_train
     else:
-        x, y = torch.from_numpy(x_test).type(torch.float32), torch.from_numpy(y_test).type(torch.float32)
+        x, y = x_test, y_test
 
     if len_dataset is None:
         len_dataset = len(x)
@@ -53,12 +56,16 @@ def load_uci(
         #         inputs = torch.cat((inputs, ood_inputs))
         #         outputs = torch.cat((outputs, ood_outputs))
 
+    # use training data to normalize the data
+    transform = tf.NormalizeNumerical(mean=x_train.mean(0), std=x_train.std(0))
+    target_transform = tf.NormalizeNumerical(mean=y_train.mean(0), std=y_train.std(0))
+
     return RegressionDataset(
         data=x[:len_dataset],
         targets=y[:len_dataset],
         name=dataset_name,
         train=train,
         ood=ood,
-        transform=tf.NormalizeNumerical(mean=x.mean(0), std=x.std(0)),
-        target_transform=tf.NormalizeNumerical(mean=y.mean(0), std=y.std(0))
+        transform=transform,
+        target_transform=target_transform
     )
