@@ -47,7 +47,7 @@ def load_torchvision(
         data, targets = torch.as_tensor(ds.data).type(torch.uint8), torch.as_tensor(ds.targets).type(torch.int64)
 
     transformer = [
-        tf.EnsureChannel(data[0].size),
+        tf.EnsureChannel(data[0].size()),
         tf.Float(),
         tf.NormalizeImage(mean=0., std=torch.iinfo(data.dtype).max)
     ]
