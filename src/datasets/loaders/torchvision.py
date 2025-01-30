@@ -44,22 +44,23 @@ def load_torchvision(
         raise NotImplementedError(f"Torchvision Dataset {dataset_name} not implemented.")
     else:
         ds = mapper[dataset_name]['dataset'](get_local_data_root(dataset_name), train=train, download=True)
+        data, targets = torch.as_tensor(ds.data).type(torch.uint8), torch.as_tensor(ds.targets).type(torch.int64)
 
     transformer = [
-        tf.EnsureChannel(ds[0][0].size),
+        tf.EnsureChannel(data[0].size),
         tf.Float(),
-        tf.NormalizeImage(mean=0., std=torch.iinfo(ds.data.dtype).max)
+        tf.NormalizeImage(mean=0., std=torch.iinfo(data.dtype).max)
     ]
 
     if flatten:
         transformer += [tf.Flatten(mapper[dataset_name]['image_mode'])]
 
     if len_dataset is None:
-        len_dataset = len(ds)
+        len_dataset = len(data)
 
     return ClassificationDataset(
-        data=ds.data[:len_dataset],
-        targets=ds.targets[:len_dataset],
+        data=data[:len_dataset],
+        targets=targets[:len_dataset],
         name=dataset_name,
         train=train,
         transform=tf.Compose(transformer),
