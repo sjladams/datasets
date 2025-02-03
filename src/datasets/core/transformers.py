@@ -12,7 +12,7 @@ class Flatten(torch.nn.modules.Flatten):
         Args:
             image_mode (str): The mode of the PIL image (e.g., 'L', 'RGB').
         """
-        # Map modes to their respective start_dim (Because of usage of EnsureChannel, this map is redundant!)
+        # Map modes to their respective start_dim (Because of usage of ToCHW, this map is redundant!)
         mode_to_start_dim = {
             "L": -3,         # Grayscale: (1, H, W) -> Flatten H and W
             # "1": -2,         # Binary: (1, H, W) -> Flatten H and W
@@ -67,22 +67,30 @@ class Float(torch.nn.Module):
         return data.float()
 
 
-class EnsureChannel(torch.nn.Module):
-    def __init__(self, size: Union[tuple, torch.Size]):
-        if len(size) == 2:
-            self.init_channel = True
-        elif len(size) == 3:
-            self.init_channel = False
+class ToCHW(torch.nn.Module):
+    def __init__(self, layout: str):
+        if layout == 'HW':
+            self._transformation = self._hw_to_chw
+        elif layout == 'HWC':
+            self._transformation = self._hwc_to_chw
+        elif layout == 'CHW':
+            self._transformation = self._chw_to_chw
         else:
-            raise ValueError
+            raise NotImplementedError
 
         super().__init__()
 
+    def _hw_to_chw(self, data: torch.Tensor):
+        return data.unsqueeze(-3)
+
+    def _hwc_to_chw(self, data: torch.Tensor):
+        return data.moveaxis(-1, -3)
+
+    def _chw_to_chw(self, data: torch.Tensor):
+        return data
+
     def forward(self, data: torch.Tensor):
-        if self.init_channel:
-            return data.unsqueeze(-3)
-        else:
-            return data
+        return self._transformation(data)
 
 
 class MoveChannel:

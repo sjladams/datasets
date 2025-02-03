@@ -9,24 +9,28 @@ from datasets.core.utils import get_local_data_root
 mapper = {
     "mnist":
         {"image_mode": "L",
+         "layout": "HW",
          "dataset": datasets.MNIST,
          "train_len": 60000,
          "test_len": 10000
          },
     "fashion_mnist":
         {"image_mode": "L",
+         "layout": "HW",
          "dataset": datasets.FashionMNIST,
          "train_len": 60000,
          "test_len": 10000
          },
     "cifar10":
         {"image_mode": "RGB",
+         "layout": "HWC",
          "dataset": datasets.CIFAR10,
          "train_len": 50000,
          "test_len": 10000
          },
     "cifar100":
         {"image_mode": "RGB",
+         "layout": "HWC",
          "dataset": datasets.CIFAR100,
          "train_len": 50000,
          "test_len": 10000
@@ -37,7 +41,7 @@ def load_torchvision(
         dataset_name: str,
         train: bool = True,
         len_dataset: Optional[int] = None,
-        flatten: bool = True,
+        flatten: bool = False,
         **kwargs) -> ClassificationDataset:
 
     if dataset_name not in mapper:
@@ -47,7 +51,7 @@ def load_torchvision(
         data, targets = torch.as_tensor(ds.data).type(torch.uint8), torch.as_tensor(ds.targets).type(torch.int64)
 
     transformer = [
-        tf.EnsureChannel(data[0].size()),
+        tf.ToCHW(mapper[dataset_name]['layout']),
         tf.Float(),
         tf.NormalizeImage(mean=0., std=torch.iinfo(data.dtype).max)
     ]

@@ -12,12 +12,14 @@ def get_mapper():
     return {
         "path_mnist":
             {"image_mode": "RGB",
+             "layout": "HWC",
              "dataset": medmnist.PathMNIST,
              "train_len": 89996,
              "test_len": 10004
              },
         "oct_mnist":
             {"image_mode": "L",
+             "layout": "HW",
              "dataset": medmnist.OCTMNIST,
              "train_len": 97477,
              "test_len": 10832
@@ -29,7 +31,7 @@ def load_medmnist(
         dataset_name: str,
         train: bool = True,
         len_dataset: Optional[int] = None,
-        flatten: bool = True,
+        flatten: bool = False,
         **kwargs) -> ClassificationDataset:
 
     mapper = get_mapper()
@@ -44,7 +46,7 @@ def load_medmnist(
         )
 
     transformer = [
-        tf.EnsureChannel(ds[0][0].size),
+        tf.ToCHW(mapper[dataset_name]['layout']),
         tf.Float(),
         tf.NormalizeImage(mean=0., std=255) # Note that in the example of the original code, the data is normalized between [-0.5, 0.5]
     ]
