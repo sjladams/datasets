@@ -14,7 +14,7 @@ def linear(len_dataset: int, in_features: int, out_features: int):
     return x, y
 
 
-def noisy_sine(len_dataset: int, in_features: int, out_features: int):
+def noisy_sine(len_dataset: int, in_features: int, out_features: int, variance: float = 0.05 ** 2):
     """
     Generates a noisy sine dataset. Includes old datasets noisysine1 and noisysine2d (different implementation)
     """
@@ -22,7 +22,7 @@ def noisy_sine(len_dataset: int, in_features: int, out_features: int):
         raise NotImplementedError
 
     x = utils.rand((len_dataset, in_features), -1, 1)
-    y = torch.sin(2 * torch.pi * x) + torch.randn((len_dataset, out_features)) * (1. - torch.sin(2 * torch.pi * x).abs())
+    y = torch.sin(2 * torch.pi * x) + torch.randn((len_dataset, out_features)) * variance 
     return x, y
 
 
@@ -57,7 +57,7 @@ data_generating_mapper = {
 def _load_or_generate_data(
         dataset_name: str,
         train: bool,
-        len_dataset: Optional[int],
+        len_dataset: int,
         in_features: int,
         out_features: int,
 ):
@@ -80,7 +80,7 @@ def _load_or_generate_data(
 def load_custom_regression(
         dataset_name: str,
         train: bool = True,
-        len_dataset: Optional[int] = 2**10,
+        len_dataset: int = 2**10,
         ood: bool = False,
         in_features: int = 1,
         out_features: int = 1,
