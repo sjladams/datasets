@@ -19,7 +19,7 @@ setuptools.setup(
     ],
     package_dir={"": "src"},
     packages=setuptools.find_packages(where="src"),
-    python_requires=">=3.9.10",
+    python_requires=">=3.7",
     install_requires=[
         'torch>=2.5',
         'torchvision>=0.20',
