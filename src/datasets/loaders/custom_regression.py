@@ -68,10 +68,6 @@ def _load_or_generate_data(
         x = data[... , range(in_features)]
         y = data[...,  range(-out_features, 0)]
     else:
-        # test set is 10% of the training set
-        if not train:
-            len_dataset = int(0.1 * len_dataset)
-
         x, y = data_generating_mapper[dataset_name](len_dataset, in_features, out_features)
         utils.save_txt_gz(data_path, torch.cat((x, y), dim=-1))
     return x, y
@@ -80,7 +76,7 @@ def _load_or_generate_data(
 def load_custom_regression(
         dataset_name: str,
         train: bool = True,
-        len_dataset: int = 2**10,
+        len_dataset: Optional[int] = None,
         ood: bool = False,
         in_features: int = 1,
         out_features: int = 1,
@@ -89,6 +85,12 @@ def load_custom_regression(
     Notes:
     - len_dataset is the number of samples in the train dataset
     """
+    if len_dataset is None:
+        if train:
+            len_dataset = int(2 **10)
+        else:
+            len_dataset = int(2 ** 10 * 0.1)     # test set is 10% of the training set
+
     x, y = _load_or_generate_data(dataset_name, train=train, len_dataset=len_dataset, in_features=in_features, out_features=out_features)
 
     if ood:
