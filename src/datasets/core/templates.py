@@ -1,6 +1,7 @@
 import torch
 from typing import Tuple, Optional, Any, Union
 
+__all__ = ['Dataset', 'ClassificationDataset', 'RegressionDataset']
 
 class Dataset(torch.utils.data.Dataset):
     def __init__(self,
